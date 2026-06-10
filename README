@@ -1,0 +1,8 @@
+To deploy use:
+```
+firebase deploy --only functions
+```
+or 
+```
+firebase deploy --only functions:functionName
+```

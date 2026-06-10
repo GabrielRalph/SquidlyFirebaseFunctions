@@ -1,0 +1,28 @@
+Sessions and their related data 
+
+``` yaml
+sessions-v3:
+    $sid:
+        hostUID: uid
+        active: boolean
+        info: object
+        updates: object
+        iceServers: object
+        requests: object
+        participants: object
+
+
+session-data: 
+    $sid:
+        $feature-name: any
+        logs: object
+
+
+users:
+    $uid:
+        session-history:
+            $sid: 
+                startTime: number
+                duration: number
+                info: object
+```

@@ -1,0 +1,31 @@
+<b>{{firstName}} {{lastName}}</b>{{#if jobTitle}} - {{ jobTitle}}{{/if}}
+<br>
+<br>
+<b>Details</b>
+<table>
+    <tbody>
+        {{#if company}}
+        <tr>
+            <td>Company:</td>
+            <td>{{ company }}</td>
+        </tr>
+        {{/if}}
+        <tr>
+            <td>Email:</td>
+            <td>{{ email }}</td>
+        </tr>
+        {{#if users}}
+        <tr>
+            <td>Users:</td>
+            <td>{{ users}}</td>
+        </tr>
+        {{/if}}
+    </tbody>
+</table>
+<br>
+<br>
+{{message}}
+{{#if attachment}}
+<img src = "{{attachment}}" alt = "Attachment" style = "max-width: 100%; height: auto;"/>
+<a href = "{{attachment}}" download> Download Attachment </a>
+{{/if}}

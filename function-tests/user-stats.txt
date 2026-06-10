@@ -1,0 +1,530 @@
+User joshua.aarons@sydney.edu.au (Joshua Aarons):
+	UID: 0YPUlLmjDYgyp2545yNRqqfqVzK2
+	Info Progress: 36% (7/11)
+	Sessions:
+		scheduled: 0
+		hosted: 5
+		last date: Sun Aug 10 2025
+	Max Tier: 2
+
+User mikehaz@hotmail.co.uk (Mike Hazlewood):
+	UID: 0ms8L1wqaVdHZLQf0LlhmYkVHW72
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 3
+		last date: Fri Aug 29 2025
+	Max Tier: 1
+
+User brandon.yeo@cerebralpalsy.org.au (Brandon Yeo):
+	UID: 44VLRJ7aBBX2DQhB4t66h4GQ6Gt1
+	Info Progress: 18% (5/11)
+	Sessions:
+		scheduled: 0
+		hosted: 12
+		last date: Tue Aug 26 2025
+	Max Tier: 3
+
+User scarlettgaffey@gmail.com (Scarlett Gaffey):
+	UID: 4PjW7kKyKGV1RmnJYaZIv1hFQPo2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 4
+		last date: Wed Sep 24 2025
+	Max Tier: 1
+
+User kate.anderson@rmit.edu.au (undefined):
+	UID: 4Wqk4boNnfYbgZLSTWIbseeqKJx1
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User xlon0482@uni.sydney.edu.au (undefined):
+	UID: 4jReC8m5l0aMC3mXwDIE98hTHWi1
+	Info Progress: 0% (8/11)
+	Sessions:
+		scheduled: 22
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User  (Gabriel LTR):
+	UID: 5rJDvymfqOc4TqZpakrSM6tAtdw1
+	Info Progress: 18% (5/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User aucklandsophia@gmail.com (CHAN Sophia):
+	UID: 7R8w9eBibdUfIQkuU2oBYat4jMC2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User sc62872@gmail.com (Gabriel Ralph):
+	UID: 7RFF5yK6GDVUMreUfewFw4kxPeA3
+	Info Progress: 27% (5/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 0
+
+User gabe.ralph@yahoo.com (Gabriel Ralph):
+	UID: 7VGpL3bObOf0wxx9a6ZSawmdVd62
+	Info Progress: 18% (5/11)
+	Sessions:
+		scheduled: 2
+		hosted: 2
+		last date: Tue Jul 15 2025
+	Max Tier: 1
+
+User jeffrey.ding1005@gmail.com (undefined):
+	UID: 7mDstbH7zDOrffeNfx88Y1Ule0z2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User amurphy@cerebralpalsy.org.au (undefined):
+	UID: A98rsMXsCkWdDt6eu6KWaIkvpsC3
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 3
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User kcburke@fcps.edu (undefined):
+	UID: DQDKG3wvVzWSNSSWh57HiUnMOx13
+	Info Progress: 0% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User gatfisher@gmail.com (undefined):
+	UID: EzeelrnsP8cVrYxpMB6QwyXCybN2
+	Info Progress: 27% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User mayappleton5@gmail.com (May Appleton):
+	UID: GIk7W7kAnTfeQEqbBPVOBFFZRoi1
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User pkarlsson@cerebralpalsy.org.au (undefined):
+	UID: GvVVB8Tfk5citwwuJxdvNt0lwXi1
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 2
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User joshua.aarons@cerebralpalsy.org.au (Joshua Aarons):
+	UID: HbvKoRLbETUlHv8VMaSFuXjWKbJ2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 1
+		last date: Fri Aug 15 2025
+	Max Tier: 3
+
+User Louise.Ganser@novita.org.au (undefined):
+	UID: IcRrcBFOvpawcHLCYSKy10d6Z4x2
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User jaar9608@uni.sydney.edu.au (Joshua Aarons):
+	UID: K6txVdiJxEVBUDhmK3fxgvUgymn2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 0
+
+User test@test.com (undefined):
+	UID: Kn1VqzJE5qRyKBiQSgfUGFKYejV2
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User kkon0188@uni.sydney.edu.au ( ):
+	UID: MlstmEGRs1NIuuUDP0kEJAeTXsl2
+	Info Progress: 18% (11/11)
+	Sessions:
+		scheduled: 20
+		hosted: 6
+		last date: Sat Oct 04 2025
+	Max Tier: 3
+
+User sebastien.vermandel@apf.asso.fr (undefined):
+	UID: ODtpErWlSFdVPzciqleu11JNqiC3
+	Info Progress: 0% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User sarah.reedman@cerebralpalsy.org.au (Sarah Reedman):
+	UID: QD5Si6swpfMStZREqZ0OoCgEJ5g1
+	Info Progress: 27% (5/11)
+	Sessions:
+		scheduled: 4
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User wlehmann@gmx.net (Wolfgang Lehmann):
+	UID: RW2KTdxYsbaxcMSMtMTwSm2gYKj1
+	Info Progress: 27% (6/11)
+	Sessions:
+		scheduled: 0
+		hosted: 1
+		last date: Wed Oct 01 2025
+	Max Tier: 1
+
+User 497286621lx@gmail.com (XxxX L):
+	UID: SAwIRuMY3fUlLjMpyrv3naUOK5p1
+	Info Progress: 18% (5/11)
+	Sessions:
+		scheduled: 0
+		hosted: 3
+		last date: Mon Sep 22 2025
+	Max Tier: 3
+
+User johnsmith@example.com (undefined):
+	UID: SvK0qw8stxMFV1sW2N6m5KvPlkR2
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User gral4196@uni.sydney.edu.au (Gabriel Ralph):
+	UID: VlcHqFWdekM5Jdd4GvTw0CqeCIn1
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 0
+
+User galejohn@gmail.com (undefined):
+	UID: XF5N9Ky8fqaVi8A9uO2s9W6mJp83
+	Info Progress: 0% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User ffer8076@uni.sydney.edu.au ( ):
+	UID: YJpNNPMnoCgTJe4YGXPfqQ92OGs2
+	Info Progress: 18% (6/11)
+	Sessions:
+		scheduled: 0
+		hosted: 6
+		last date: Tue Aug 26 2025
+	Max Tier: 3
+
+User 1114728336@qq.com (Gary Li):
+	UID: atbxE4nqbagGP0zobitYn1nxVgy2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 12
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User joshua.aarons71@gmail.com (Josh Aarons):
+	UID: b74L3X6ChOPe5lmbGMpg9jVfRrb2
+	Info Progress: 45% (12/11)
+	Sessions:
+		scheduled: 17
+		hosted: 200
+		last date: Thu Oct 09 2025
+	Max Tier: 3
+
+User vdes8030@uni.sydney.edu.au (undefined):
+	UID: bWRlooq7y3hc49USGHbkH8iWWrY2
+	Info Progress: 0% (4/11)
+	Sessions:
+		scheduled: 5
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User david.harraway@yooralla.com.au (undefined):
+	UID: bXJepMDbbPfuVBSxRiqmU7fZIEY2
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User gxxx@ggg.com (undefined):
+	UID: cBYcDUy7x1c6R3HSDwUW9tjlszi1
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User pqua6801@uni.sydney.edu.au (Palmy):
+	UID: clSFXj54BBhszBCAh6uYoZzzPpJ3
+	Info Progress: 18% (6/11)
+	Sessions:
+		scheduled: 0
+		hosted: 21
+		last date: Fri Sep 26 2025
+	Max Tier: 3
+
+User joshua@squidly.com.au (undefined):
+	UID: dwkKexOV4uVJHsrRKEhAiRFuRdH3
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User jdin4345@uni.sydney.edu.au (undefined):
+	UID: euLzF4cVrEfHFU29MDnoDE40X6q2
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User allygxl3333@gmail.com (Ally MUI):
+	UID: gZ9OZ07CA3deR4nF7GfT3ioOhp62
+	Info Progress: 18% (5/11)
+	Sessions:
+		scheduled: 0
+		hosted: 5
+		last date: Thu Sep 18 2025
+	Max Tier: 1
+
+User nicolebrown@lifetec.org.au (undefined):
+	UID: jgzNPHfcs1e2BqpY1il1mIV1mud2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 10
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User undefined (undefined):
+	UID: juO19osNQXQQageEqZgqRfepKxj2
+	Info Progress: 18% (2/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User ynfantez@gmail.com (undefined):
+	UID: kK2iCSxz6KUu4ErOnAg1ZRjsHLa2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 2
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User nixfrfr@sent.com (undefined):
+	UID: lDBNTMUwaHM9yNgPB5iQXKOWxvc2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 2
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User contact@squidly.com.au (undefined):
+	UID: ljenObr2XBTgoJv8i2sXgAhMdED2
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User mcho8738@uni.sydney.edu.au ( Michelle):
+	UID: m069ESQWY3dfOAZXf1AZW0R6uUL2
+	Info Progress: 27% (10/11)
+	Sessions:
+		scheduled: 4
+		hosted: 39
+		last date: Tue Oct 07 2025
+	Max Tier: 3
+
+User phua4038@uni.sydney.edu.au (Michael Huang):
+	UID: mBsPK5GhZ9XrgbS5saIK4eNi3NI3
+	Info Progress: 27% (11/11)
+	Sessions:
+		scheduled: 3
+		hosted: 75
+		last date: Thu Oct 09 2025
+	Max Tier: 3
+
+User gral4196@uni.sydney.edu.au (Gabriel Ralph):
+	UID: oQc3MWOavDQrMrfte0R4si5EfDj2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User joshua.aarons@resmed.com.au (undefined):
+	UID: qWkKBtfTg8R9AaClXAJJDLUod7H2
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User joshua.aarons@ymail.com (Joshua Aarons):
+	UID: qrNwTrWWzKdZ6qK0Wy428epYpQf2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 1
+		last date: Thu Aug 28 2025
+	Max Tier: 1
+
+User rebecca@twowaystreet.com.au (Rebecca Hudson):
+	UID: rrxgOpKHYeYanYMPBnZJBQslIFI3
+	Info Progress: 27% (5/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User lauren.curtis@cerebralpalsy.org.au (undefined):
+	UID: rtJkDWO6VDYnvnhg3zjEEKWDFkn2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 5
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User gltralph@gmail.com (Gabriel LTR):
+	UID: s6NoggwP78XlE7LtWnu5Q38VbF32
+	Info Progress: 64% (13/11)
+	Sessions:
+		scheduled: 2
+		hosted: 74
+		last date: Fri Sep 05 2025
+	Max Tier: 3
+
+User patrick.pu@outlook.com (Patrick):
+	UID: sahRbpOKioRWZUXzLF2fJa5XHG92
+	Info Progress: 18% (6/11)
+	Sessions:
+		scheduled: 0
+		hosted: 3
+		last date: Fri Aug 15 2025
+	Max Tier: 1
+
+User subincsp@naver.com (Subin Choe):
+	UID: sySfX9Ff1oaRRVsuovy2Pqs7XC33
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User maxgow42@outlook.com (undefined):
+	UID: uP00J5S7ugY5pwG1j7RKl2GDWB22
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User davidhharraway@gmail.com (undefined):
+	UID: ucTgtdZxu0OF7vUrjEZvWoxapBw1
+	Info Progress: 18% (3/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User cmor8988@uni.sydney.edu.au (undefined):
+	UID: vhWLavqIjHNkLFNNLFUN9rjJRMT2
+	Info Progress: 18% (8/11)
+	Sessions:
+		scheduled: 2
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User jaar9608@uni.sydney.edu.au (Joshua  Aarons):
+	UID: wOPqJJ9MXFeiTLQItfhJeywEHBz2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1
+
+User allygxl@outlook.com (Ally Mui):
+	UID: yNtTFYvEYSbA5F4SbsaPBn1DMJ13
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 3
+
+User fuadf278@gmail.com (fuad ferdous):
+	UID: yb3Xv3qdzAResYOkXudh5GL9qAr2
+	Info Progress: 18% (4/11)
+	Sessions:
+		scheduled: 0
+		hosted: 0
+		last date: -
+	Max Tier: 1

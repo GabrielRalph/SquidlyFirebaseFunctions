@@ -1,0 +1,21 @@
+{
+    "sessions-v3": {
+        "sid": {
+            "hostUID": "uid",
+            "active": "boolean",
+            "startTime": "number",
+        
+            "updates": {
+                "host": "timestamp",
+                "particpant": "timestamp"
+            },
+        
+            "info": {}
+        }
+    },
+    "session-data": {
+        "sid": {
+            "app$": {}
+        }
+    }
+}

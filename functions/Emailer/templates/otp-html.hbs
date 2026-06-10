@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<head>
+    <style type="text/css">
+        body {
+            font-family: sans-serif;
+        }
+        .main {
+            padding: 4em 2em; 
+            font-size: 1.2em;
+            background-color: #f6f6f9; 
+        }
+        .inner {
+            max-width: 600px;
+            background-color: #ffffff; 
+            padding: 2em; 
+            border-radius: 1em; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: auto;
+        }
+        .fine {
+            font-size: 0.9em;
+            color: #343434;
+        }
+        
+        .otp {
+            font-size: 1.4em;
+            letter-spacing: 0.2em;
+            padding: 0.2em;
+            border: 2px solid #8f53c9;
+            border-radius: 0.5em;
+        }
+   
+        /* Your mobile media queries */
+        @media only screen and (max-width: 600px) {
+            
+            .main {
+                background-color: #ffffff !important;
+                padding: 1px !important;
+            }
+            .inner {
+                padding: 1px !important;
+                box-shadow: none !important;
+            }
+           
+        }
+    </style>
+</head>
+<body>
+    <div class = "main">
+        <div class = "inner">
+           
+            <!-- <h2>Hi <span style = "color: #8f53c9">,</span></h2> -->
+            <h1>Log in to Squidly</h1>
+            <br>
+            <div>
+                Welcome back {{userName}}! Enter this code within the next 10 minutes to log in:
+            </div>
+            <h1 style = "text-align: center; padding-bottom: 3em; padding-top: 1em;">
+                <span class = "otp">{{otp}}</span>
+            </h1>
+            
+        
+            <a href = "https://squidly.com.au">
+                <img width = "150" style = "width: 150px;" src = "https://storage.googleapis.com/eyesee-d0a42.appspot.com/logo-banner.png" alt = "Squidly Logo Text Banner"/>
+            </a>
+    
+            <div class = "fine">
+                Squid Eye Pty Ltd , NSW 2000, Australia <br/>
+                ABN 18 666 550 947 | <a href = "https://policies.squidly.com.au/privacy/">Privacy Policy</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<head>
+    <style type="text/css">
+        body {
+            
+        }
+        .main {
+            padding: 4em 2em; 
+            font-size: 1.2em;
+            background-color: #f6f6f9; 
+        }
+        .inner {
+            max-width: 600px;
+            background-color: #ffffff; 
+            padding: 2em; 
+            border-radius: 1em; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: auto;
+        }
+        .row {
+            display: flex;
+            gap: 1em;
+        }
+
+        .img-phone-container {
+            width: 100%;
+            display: none;
+        }
+
+        /* Your mobile media queries */
+        @media only screen and (max-width: 600px) {
+            .img-phone-container {
+                display: flex !important;
+                justify-content: center;
+                align-items: center;
+            }
+            .row {
+                flex-direction: column-reverse !important;
+            }
+            .main {
+                background-color: #ffffff !important;
+                padding: 1px !important;
+            }
+            .inner {
+                padding: 1px !important;
+                box-shadow: none !important;
+            }
+            .img-container {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class = "main">
+        <div class = "inner">
+            <div class = "img-phone-container">
+                <img style = "width: 50%; object-fit: contain; margin: auto;" src="https://storage.googleapis.com/eyesee-d0a42.appspot.com/logo.png" alt="Squidly Logo"/>
+            </div>
+            <div class = "row">
+                <div style = "width: 100%">
+                    <h1>Hi {{firstName}}<span style = "color: #8f53c9">,</span></h1>
+                    <div>
+                        Thank you for signing up to <b>Squidly</b> - we’re thrilled to have you on board!
+                    </div>
+                    <br>
+                    <div>
+                        Squidly is here to help you or your loved ones access <b>supportive, secure, and easy-to-use video call tools</b> tailored for assistive care. Whether you’re managing care from home or collaborating with healthcare professionals, Squidly keeps everyone connected and informed.
+                    </div>
+                </div>
+
+                <div class = "img-container" style = "display: flex; align-items: center;  width: 40%;">
+                    <img style = "width: 100%; object-fit: contain;" src="https://storage.googleapis.com/eyesee-d0a42.appspot.com/logo.png" alt="Squidly Logo"/>
+                </div>
+            </div>
+            <br/>
+            <div style = "border: 2px solid #8f53c9; padding: 0.5em; border-radius: 1em;">
+                <div>
+                    Here’s what you can do next:
+                </div>
+                <ul>
+                    <li><b>Explore your dashboard</b> to start setting up custom boards, care routines and preferences.</li>
+                    <li><b>Schedule your first session</b> and invite family members or care team professionals to join your circle.</li>
+                    <li><b>Try out in-session features</b> like Squidly eye-gaze, accessible settings, visual tools and collaborative content.</li>
+                </ul>
+            </div>
+            <br>
+            <div>
+                We've built Squidly to empower you with confidence, clarity, and care - right from your fingertips.
+            </div>
+            <br>
+            <div>
+                If you have any questions, we’re just a click away. You can reach our team anytime at contact@squidly.com.au.
+            </div>
+            <br>
+            <div>
+                Once again, welcome. We’re so glad you’re here.
+            </div>
+            <br/>
+            <br/>
+            <div>Warm regards,</div>
+            <div>Josh Aarons</div>
+            <div>CEO & Co-Founder, Squidly</div>
+            <br/>
+            <br/>
+        
+            <div>
+                <img class = "hide-in-outlook" width = "150" style = "width: 150px;" src = "https://storage.googleapis.com/eyesee-d0a42.appspot.com/logo-banner.png" alt = "Squidly Logo Text Banner"/>
+            </div>
+    
+            <br/>
+            <a href = "https://squidly.com.au">squidly.com.au</a>
+        </div>
+    </div>
+</body>
+</html>
