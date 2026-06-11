@@ -7,7 +7,6 @@ const fs = require('fs');
 // Load path
 const path = require('path');
 const { scopeString } = require('./scopeString.js');
-const { resolveDataScope } = require('./rule-parser.js');
 
 
 const rules = yaml.load(fs.readFileSync(path.join(__dirname, 'rules.yaml'), 'utf8'));
