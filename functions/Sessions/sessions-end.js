@@ -31,11 +31,16 @@ async function removeSessionContent(sid){
 }
 
 async function removeSessionParticipants(session){
-    let {participants, hostUID} = session;
+    let {participants, hostUID, anonymousHostUID} = session;
     if (participants) {
-        await Promise.all(Object.keys(participants).map(uid => 
-            tempUsersRef(uid, hostUID).set(null)
-        ))
+        await Promise.all([
+            // remove participant temp user entries
+            ...Object.keys(participants).map(uid => 
+                tempUsersRef(uid, hostUID).set(null)
+            ),
+            // remove host temp user entry
+            tempUsersRef(anonymousHostUID, hostUID).set(null)
+        ])
     }
 }
 

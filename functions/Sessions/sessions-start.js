@@ -1,4 +1,4 @@
-const { validateData, usersRef } = require("../Shared/shared.js");
+const { validateData, usersRef, tempUsersRef } = require("../Shared/shared.js");
 const { Usage } = require("../usage.js");
 const { endSession } = require("./sessions-end.js");
 const { sessionsRef, START_END_VALIDATORS, ERROR_CODES } = require("./shared.js");
@@ -50,6 +50,8 @@ async function startSession(data, auth) {
     if (valid) {
         iceServers = await createIceServers(data.usage.available.minutes);
         let now = (new Date()).getTime();
+
+        const {anonymous, hostUID, anonymousHostUID} = data.session;
         await Promise.all([
             sessionsRef(data.sid).update({
                 active:true,
@@ -59,7 +61,12 @@ async function startSession(data, auth) {
                     host: now,
                 }
             }),
-            usersRef(auth.uid, "active-session").set(data.sid)
+            usersRef(auth.uid, "active-session").set(data.sid), 
+            
+            // If the session is anonymous, also add the anon host
+            // so they can be identified as the host for the 
+            // duration of the session.
+            anonymous ? tempUsersRef(anonymousHostUID, hostUID).set(true) : null
         ])
     }
 
