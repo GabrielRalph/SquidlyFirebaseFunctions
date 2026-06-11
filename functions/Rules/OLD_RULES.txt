@@ -1,0 +1,758 @@
+let data  = {
+  "rules": {
+    
+    ".read": "auth != null && root.child('super-admin/' + auth.uid).exists() && root.child('super-admin/' + auth.uid).val() == true",
+    
+    "super-admin": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+		},
+      
+      
+    "file-status": {
+      "$uid": {
+        ".read": "auth != null && $uid == auth.uid"
+      }
+    },
+    
+    "proxy-links": {
+      ".indexOn": "info/profileID"
+      
+    },
+      
+    "contact-messages": {
+      "$messageID": {
+        	".write": "!data.exists() && newData.exists() && newData.hasChildren(['message', 'users', 'email', 'firstName', 'lastName', 'company', 'jobTitle'])",
+        	"message": {".validate": "newData.exists() && newData.isString() && newData.val().length <= 500 && newData.val().length > 0"},
+          "users": {".validate": "newData.exists() && newData.isNumber()"},
+          "email":  {".validate": "newData.exists() && newData.isString() && newData.val().length <= 320 && newData.val().length > 0"},
+          "firstName":  {".validate": "newData.exists() && newData.isString() && newData.val().length <= 250 && newData.val().length > 0"},
+          "lastName":  {".validate": "newData.exists() && newData.isString() && newData.val().length <= 250 && newData.val().length > 0"},
+          "company":  {".validate": "newData.exists() && newData.isString() && newData.val().length <= 250 && newData.val().length > 0"},
+          "jobTitle":  {".validate": "newData.exists() && newData.isString() && newData.val().length <= 250 && newData.val().length > 0"},
+      }
+    },
+      
+      
+    "apps": {
+      ".read": true,
+      ".write": "root.child('super-admin/' + auth.uid).exists() && root.child('super-admin/' + auth.uid).val() == true",
+      "$appID": {
+        "url": {".validate": "newData.isString()"},
+      }
+    },
+    
+    "otps": {
+      "$uid": {
+        "expires": {
+          ".read": "auth != null && auth.uid == $uid && data.exists()"
+        }
+      }
+    },
+    
+    "temp-users": {
+      	"$uid": {
+           "$huid": {
+             	
+           }
+        }
+    },
+    
+    "licences-settings": {
+      "usage-template": {".read": true},
+      "tier-usage": {".read": true},
+      "tier-info": {
+        ".read": "query.orderByChild === 'public' && query.equalTo === true",
+        ".indexOn": ["public"]
+      },
+      "tier-names": {".read": true}
+    },
+    "licences": {
+      "$lid": {
+        // A user can only read the entire list of users if they are of editor status
+        ".read": "auth !== null && auth.token.email_verified === true && 
+            // they have a status in the licence
+          root.child('licences/'+$lid+'/users/'+auth.uid+'/status').exists() &&
+            // there status is of editor level (i.e. > 1)
+          root.child('licences-settings/statuses/'+root.child('licences/'+$lid+'/users/'+auth.uid+'/status').val()).val() > 1
+        ",
+        "$key": {
+          // Users can read these values if they are authenticated and part of the licence
+          ".read": " auth !== null && auth.token.email_verified === true && 
+            root.child('licences/'+$lid+'/users/'+auth.uid).exists() && // user is part of the licence
+              // The values any user can only read these values.
+              ($key === 'seats'||
+              $key === 'tier' ||
+              $key === 'oldTier' ||
+              $key === 'licenceName' ||
+              $key === 'disabled')"
+        },
+          
+        "users": {
+          // A user can read there own details in a licence.
+          "$uid": {
+            ".read": "auth !== null && auth.token.email_verified === true && auth.uid == $uid"
+          }
+        }
+        
+      }
+    },
+    
+      
+    "sessions-v3": {
+      ".indexOn": ["active", "hostUID"],
+        
+      // Anyone can read all sessions as long as they are querying the sessions
+      // that they are the host of, i.e. orderByChild('hostUID').equalTo(uid) .
+      ".read": "auth.uid !== null && query.orderByChild === 'hostUID' && query.equalTo === auth.uid",
+        
+      "$sid": {
+        	// Only the host can read all the session information if the session exists.
+          ".read": "auth != null && root.child('sessions-v3/'+$sid).exists() &&  
+          					(
+            					root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid ||
+                      (
+                         root.child('sessions-v3/' + $sid + '/anonymousHostUID').val() == auth.uid &&
+                         root.child('sessions-v3/' + $sid + '/anonymous').val() === true
+                      )
+            				)",
+        "active": {
+        	".read": true  // Anyone can read whether the session is active.
+        },
+        "hostUID": {
+          ".read": true, // Anyone can read the host's UID.
+        },
+        "anonymous": {".read": true},
+        "anonymousHostUID": {
+          ".read": true,
+            // Any authenticated user can write, if data does not exist
+          ".write": "auth != null && root.child('sessions-v3/'+$sid+'/anonymous').val() === true && !data.exists() && newData.val() === auth.uid"
+        },
+        "participants": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid",
+          }
+        },
+          
+        "info": {
+          ".read": true, // Anyone can read info
+          // Host can write the session info
+          ".write": "auth != null && root.child('sessions-v3/'+$sid).exists() && 
+          					root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid",
+          ".validate": "newData.exists() && newData.hasChild('startTime')",
+          
+          "startTime": 		{ ".validate": "newData.isNumber()" },
+          "duration": 		{ ".validate": "newData.isNumber()" },
+          "description": 	{ ".validate": "newData.isString()" },
+          "startDate": 		{ ".validate": "newData.isString()" },
+          "timezone": 		{ ".validate": "newData.isString()" },
+          "profileID":    { ".validate": "newData.isString() && root.child('users/' + auth.uid + '/settings/profiles/' + newData.val()).exists()"},
+          "$other_key":   {".validate": false}
+        },   
+          
+        "iceServers": {
+          ".read": "auth != null && root.child('sessions-v3/'+$sid+'/participants/'+ auth.uid).exists()"
+        },
+          
+        "requests": {
+          "$uid": {	
+            // User can only create a request under their UID for a session that exists and is active.
+            ".write": "auth != null && auth.uid == $uid && !data.exists() && newData.exists() && 
+            						root.child('sessions-v3/'+$sid).exists() && 
+                        root.child('sessions-v3/'+$sid + '/active').val() === true ",
+            
+            // A user can only read their requests
+            ".read": "auth != null && auth.uid == $uid",
+            
+            // Must have keys 'name' and 'approved'
+            ".validate": "newData.isString() && newData.val().length < 512",
+          }
+        }, 
+        "updates": {
+          ".read": true, // Anyone can read updates
+          "host": {
+            // Only host can write this value
+            ".write": "auth != null && (
+            					root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid ||
+                      (
+                         root.child('sessions-v3/' + $sid + '/anonymousHostUID').val() == auth.uid &&
+                         root.child('sessions-v3/' + $sid + '/anonymous').val() === true
+                      )
+            				)",
+              
+            // Must be a timestamp with 30 seconds from the current time (or 2s after).
+            ".validate": "newData.isNumber() && newData.val() > now - 30000 && newData.val() < now + 2000"
+          },
+          "$uid": {
+            // Only approved participant can write this field.
+            ".write": "auth != null && root.child('sessions-v3/'+$sid+'/participants/'+$uid).exists()",
+            
+            // Must be a timestamp with 30 seconds from the current time (or 2s after).
+            ".validate": "newData.isNumber() && newData.val() > now - 30000 && newData.val() < now + 2000"
+          }
+        }
+      }
+    },
+    "session-data": {
+      "$sid": {
+        "video-call": {
+           ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+             						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists() ||
+            						(
+                          root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid ||
+                          (
+                             root.child('sessions-v3/' + $sid + '/anonymousHostUID').val() == auth.uid &&
+                             root.child('sessions-v3/' + $sid + '/anonymous').val() === true
+                          )
+                        )
+          					)",
+           
+           "host": {
+             ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+            						(
+                          root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid ||
+                          (
+                             root.child('sessions-v3/' + $sid + '/anonymousHostUID').val() == auth.uid &&
+                             root.child('sessions-v3/' + $sid + '/anonymous').val() === true
+                          )
+                        )",
+             "$key": {
+               "$key2": {
+                 ".write": "$key == 'descriptions' || $key == 'candidates' && !newData.exists() &&
+               							root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()"
+               }
+             }
+           }, 
+             
+          
+             
+           "participant": {
+             ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()",
+             
+             "$key": {
+               ".write": " (($key == 'audio' || $key == 'video') && newData.exists()) &&
+               							(
+                              root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid ||
+                              (
+                                 root.child('sessions-v3/' + $sid + '/anonymousHostUID').val() == auth.uid &&
+                                 root.child('sessions-v3/' + $sid + '/anonymous').val() === true
+                              )
+                            )",
+               "$key2": {
+                 ".write": "($key == 'descriptions' || $key == 'candidates') && !newData.exists() && 
+                 							(
+                                root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid ||
+                                (
+                                   root.child('sessions-v3/' + $sid + '/anonymousHostUID').val() == auth.uid &&
+                                   root.child('sessions-v3/' + $sid + '/anonymous').val() === true
+                                )
+                              )"
+               }
+             }
+           }
+        },
+        "tool-bar": {
+            "locked": {
+               ".read": "auth != null && root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists() ||
+                 				(
+                            root.child('sessions-v3/' + $sid + '/hostUID').val() == auth.uid ||
+                            (
+                               root.child('sessions-v3/' + $sid + '/anonymousHostUID').val() == auth.uid &&
+                               root.child('sessions-v3/' + $sid + '/anonymous').val() === true
+                            )
+                          )
+                 
+          					)",
+          		".write": "newData.isBoolean() && root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+            }
+         },
+        "logs": {
+          	".read": "true",
+            "$lid": {
+              
+          		".write": "auth != null && root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+              "time": {".validate": "newData.isNumber()"},
+              "isHost": {".validate": "newData.isBoolean()"},
+              "key": {".validate": "(newData.isString() && newData.val().length < 1024) || newData.isNumber() || newData.isBoolean()"},
+              "value": {".validate": "(newData.isString() && newData.val().length < 1024) || newData.isNumber() || newData.isBoolean()"},
+              "oldValue": {".validate": "(newData.isString() && newData.val().length < 1024) || newData.isNumber() || newData.isBoolean()"},
+              "note":{".validate": "(newData.isString() && newData.val().length < 1024) || newData.isNumber() || newData.isBoolean()"},
+              "$otherKeys": {".validate": false}
+            }
+         }, 
+        "settings": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "apps": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "chat": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "session-main": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "share-content": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "cursors": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "eye-gaze": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "walk-through": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        },
+        "aac": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          "topics": {
+            	"$idx": {
+                ".validate": "newData.isString() && newData.val().length < 50"
+              }
+          },
+          "topic": {
+          	".validate": "newData.isString()",
+          }
+        },
+        "quiz": {
+          ".read": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+          ".write": "root.child('sessions-v3/'+$sid+'/active').val() == true && 
+          					( 
+            						auth.uid == root.child('sessions-v3/'+$sid+'/hostUID').val() ||
+            						root.child('sessions-v3/'+$sid+'/participants/' + auth.uid).exists()
+          					)",
+        }
+      }
+    },
+      
+    "users": {
+      ".indexOn": ["email"],
+      
+      "$uid": {
+       	".read": "auth != null && $uid == auth.uid && auth.token.email_verified == true",
+        "settings": {
+          // Can read and write if they are writting their own settings or they 
+          // are a participant of the owners active session.
+          ".read": "auth !== null && (auth.uid === $uid ||
+          					(root.child('sessions-v3/'+ root.child('users/' + $uid + '/active-session').val() +'/active').val() === true && 
+                    auth !== null && root.child('sessions-v3/'+ root.child('users/' + $uid + '/active-session').val() +'/participants/' + auth.uid).exists()))",
+          ".write": "auth !== null && (auth.uid === $uid ||
+          					(root.child('sessions-v3/'+ root.child('users/' + $uid + '/active-session').val() +'/active').val() === true && 
+                    auth !== null && root.child('sessions-v3/'+ root.child('users/' + $uid + '/active-session').val() +'/participants/' + auth.uid).exists()))",
+        },
+        "responses": {
+          ".write": "auth != null && $uid == auth.uid && auth.token.email_verified == true",
+          "$sid": {
+            
+            ".write": "root.child('users/' + $uid).exists() && 
+            					!data.exists() && newData.exists() && 
+              				newData.hasChild('date') &&
+              				( root.child('users/' + $uid + '/' + 'session-history/' + $sid).exists() ||
+                      (root.child('sessions-v3/' + $sid).exists()  && root.child('sessions-v3/' + $sid + '/hostUID').val() === $uid))
+              				
+              ",
+          	"date": {
+              ".validate": "newData.isNumber()"
+            },
+            "experience": {
+              ".validate": "newData.isString() && newData.val().length < 20"
+            },
+            "experiencedDifficulties": {
+              ".validate": "newData.isBoolean()"
+            },
+            "technicalDifficulties": {
+               "$td": {
+                 ".validate": "($td == '0' || $td == '1' || $td == '2' || $td == '3') && newData.isString() && newData.val().length < 50"
+               }
+            },
+            "npsScore": {
+              ".validate": "newData.isNumber()"
+            },	
+            "comments": {
+              ".validate": "newData.isString() && newData.val().length < 512"
+            },
+            "$otherKeys": {
+              ".validate": false
+						}
+            
+          }
+        },
+        "info": {
+         	".read": "auth != null && $uid == auth.uid && auth.token.email_verified == true",
+        	".write": "auth != null && $uid == auth.uid && (!data.exists() || auth.token.email_verified == true)",
+          
+          "displayName": {
+            ".validate": "newData.isString()",
+            // Payed customers can see every other users name 
+            ".read": true,
+              
+          },
+          "firstName": {
+            ".validate": "newData.isString()",
+            ".read": true,
+          },
+          "lastName": {
+            ".validate": "newData.isString()",
+            ".read": true,
+
+          },
+          "email": {
+            ".validate": "newData.isString()"
+          },
+          "pronouns": {
+            ".validate": "newData.isString()",
+            ".read": true,
+              
+            
+          },
+          "displayPhoto": {
+            ".validate": "newData.isString()",      
+            ".read": true,
+              
+          },
+          "optionalData": {
+            ".validate": "newData.isBoolean()"
+          },
+          "requiredData": {
+            ".validate": "newData.isBoolean()"
+          },
+          
+          "hostVideo": {
+            ".read": true,
+            ".validate": "newData.isBoolean()"
+          },
+          "hostAudio": {
+            ".read": true,
+            ".validate": "newData.isBoolean()"
+          },
+          "participantVideo": {
+            ".read": true,
+            ".validate": "newData.isBoolean()"
+          },
+          "participantAudio": {
+            ".read": true,
+            ".validate": "newData.isBoolean()"
+          },
+          "dark": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
+          },
+        },
+        "sessions": {
+          "$sid": {
+            "description": {
+              ".validate": "newData.isString()"
+            },
+          
+            "date": {
+              ".validate": "newData.isNumber()"
+            },
+            "timezone": {
+              ".validate": "newData.isString()"
+            },
+            "duration": {
+              ".validate": "newData.isNumber()"
+            },
+            "status": {
+              ".validate": "newData.isString()"
+            },
+            "id": {
+              ".validate": "newData.val() == $sid"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "billing-details": {
+          ".write": "auth != null && $uid === auth.uid && auth.token.email_verified == true",
+            
+        	"cardholder-name": {
+            ".validate": "newData.isString()"
+          },
+          "cvc": {
+            ".validate": "newData.isString()"
+          },
+          "card-number": {
+            ".validate": "newData.isString()"
+          },
+          "email": {
+            ".validate": "newData.isString()"
+          },
+          "expiry-date": {
+            ".validate": "newData.isString() && newData.val().length <= 7"
+          },
+          "$any-other-key": {
+            ".validate": false
+          }
+        },
+        "session-history": {
+          "$sid": {
+            ".write": "!newData.exists()"
+          }
+        },
+        "metrics": {
+          "lastSignInTime": {
+            ".write": "auth != null && auth.uid == $uid",
+            ".validate": "newData.isNumber()"
+          }
+        }
+      }
+    },
+    
+    
+    "messages": {
+      "$uid": {
+        "firstName": {
+          ".validate": "newData.isString()"
+        },
+        "lastName": {
+          ".validate": "newData.isString()"
+        },
+        "email": {
+          ".validate": "newData.isString()"
+        },
+        "message": {
+          ".validate": "newData.isString()"
+        },
+        "attachment": {
+          ".validate": "newData.isString()"
+        },
+        "$other": {
+          ".validate": false
+        },
+        ".write": "auth != null && (!data.exists() && auth.token.email_verified == true)"
+      }
+    },
+    
+    "companies": {
+      "$cid": {
+        ".read": "auth != null && root.child('users/'+auth.uid+'/admin').val() == $cid"
+      }
+    },
+    
+    "dataset": {".read": true},
+   
+    
+    "quizes": {
+      ".indexOn": ["public", "owner", "name"],
+      ".read": "auth.uid !== null && 
+                  ( 
+                    ( // paid or temp user searching by public
+                      ( // User is paid or temp
+                        ( // User is paid
+                          auth.token.email_verified == true && 
+                          root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists()  
+                      	) || 
+                        // User is temp
+                      	root.child('temp-users/' + auth.uid).exists() 
+                      ) && 
+                      // Search public
+                      query.orderByChild === 'public' &&
+                      query.equalTo === true
+                  ) ||
+                  ( // serching by owner either themselves or linked user
+                    query.orderByChild === 'owner' && 
+                    ( // owner is the user or linked to a temp usrer
+                      query.equalTo === auth.uid ||
+                      root.child('temp-users/'+auth.uid).child(query.equalTo).exists()
+                    )
+                  )
+              	)",
+      	"$qid": {
+        		".read": "auth != null && 
+        						((
+            					(( // paid or temp user
+                        auth.token.email_verified === true && 
+                        root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists() 
+                      ) || root.child('temp-users/' + auth.uid).exists())
+        						) && (
+                      data.child('public').val() === true
+                    )) || (
+            					data.child('owner').val() === auth.uid ||
+            					root.child('temp-users/' + auth.uid).child(data.child('owner').val()).exists()
+          					)",
+          ".write": "auth !== null && !newData.exists() && data.exists() && data.child('owner').val() === auth.uid"
+        }
+    },
+    "grid-topics": {
+      ".indexOn": ["public", "owner", "name"],
+      ".read": "auth.uid !== null && 
+                  ( 
+                    ( // paid or temp user searching by public
+                      ( // User is paid or temp
+                        ( // User is paid
+                          auth.token.email_verified == true && 
+                          root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists()  
+                      	) || 
+                        // User is temp
+                      	root.child('temp-users/' + auth.uid).exists() 
+                      ) && 
+                      // Search public
+                      query.orderByChild === 'public' &&
+                      query.equalTo === true
+                  ) ||
+                  ( // serching by owner either themselves or linked user
+                    query.orderByChild === 'owner' && 
+                    ( // owner is the user or linked to a temp usrer
+                      query.equalTo === auth.uid ||
+                      root.child('temp-users/'+auth.uid).child(query.equalTo).exists()
+                    )
+                  )
+              	)",
+      "$topicUID": {
+        	".write": "auth != null && auth.token.email_verified == true && 
+        						root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists() &&  // has paid licence
+          					(newData.exists() ? newData.hasChildren(['owner', 'name', 'public', 'size', 'items']) : true) && // new data has all keys 
+            				(data.exists() ? data.child('owner').val() == auth.uid : true)", 
+          ".read": "auth != null && 
+        						((
+            					(( // paid or temp user
+                        auth.token.email_verified === true && 
+                        root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists()
+                      ) || root.child('temp-users/' + auth.uid).exists())
+        						) && (
+                      data.child('public').val() === true
+                    )) || (
+            					data.child('owner').val() === auth.uid ||
+            					root.child('temp-users/' + auth.uid).child(data.child('owner').val()).exists()
+          					)",
+            
+          "owner": 		{".validate": "newData.isString() && auth != null && auth.uid == newData.val()"},
+        	"name": 		{".validate": "newData.isString() && newData.val().length < 512"},
+          "starter": 	{".validate": "newData.isBoolean()"},
+          "public": 	{".validate": "newData.isBoolean()"},
+          "size": 		{".validate": "newData.isString() && root.child('grid-topic-settings/sizes').child(newData.val()).exists()" },
+          "items": {
+              "$itemIndex": {
+                	".validate": "(
+                    (root.child('grid-topics/' + $topicUID + '/size').exists() && // If the grid topic exists
+                    root.child('grid-topic-settings/item-keys-by-size').child(root.child('grid-topics/' + $topicUID + '/size').val()).child($itemIndex).exists()) || 
+                    (newData.parent().parent().child('size').exists() && 
+                     root.child('grid-topic-settings/item-keys-by-size').child(newData.parent().parent().child('size').val()).child($itemIndex).exists() )
+                  ) && ((newData.hasChild('hidden') && newData.child('hidden').val() == true) || newData.hasChildren(['hidden', 'type', 'displayValue']))",
+                  "hidden": { ".validate": "newData.isBoolean()" },
+                  "displayValue": { ".validate": "newData.isString() && newData.val().length < 512" },
+                  "symbol": {
+                      "url": 		{".validate": "newData.isString()"},
+                      "id": 		{".validate": "newData.isString()"},
+                      "$osym": 	{".validate": false}
+                  },
+                  "utterance": {".validate": "!newData.exists() || (newData.isString() && newData.val().length < 512)"},
+                    											// Type is set to string that is also a key in the grid-topic-settings/item-types library AND
+                    											// if the type is topic then topicUID must also be set.
+                  "type": {".validate": "newData.isString() && root.child('grid-topic-settings/item-types').child(newData.val()).exists() && 
+                  												(root.child('grid-topic-settings/item-types').child(newData.val()).val() == true ? newData.parent().hasChild('topicUID') : true)"},
+                  													// a topic exists AND (the user owns the topic OR the topic is public)
+                  "topicUID": {".validate": "newData.isString() && root.child('grid-topics').child(newData.val()).exists() &&  
+                    												((auth != null && root.child('grid-topics').child(newData.val()).child('owner').val() === auth.uid) ||
+                                             root.child('grid-topics').child(newData.val()).child('public').val() === true )"},
+        					"$oitem": {".validate": false}
+          		}
+        	},
+        	"$otopic": {".validate": false}
+      }
+    }
+  }
+}

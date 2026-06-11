@@ -1,0 +1,435 @@
+.functions:
+  isSuperUser(): |
+    auth != null && 
+    root.child('super-admin/' + auth.uid).exists() && 
+    root.child('super-admin/' + auth.uid).val() == true
+
+  isMe(uid = $uid): auth != null && auth.uid == uid
+
+  isMeVerified(uid = $uid): auth != null && auth.token.email_verified == true && auth.uid == uid
+
+  isStringBetween(a, b): newData.exists() && newData.isString() && newData.val().length <= b && newData.val().length > a
+
+  isHost(sid = $sid): auth != null && root.child('sessions-v3/' + sid).exists() && 
+    root.child('sessions-v3/' + sid + '/hostUID').val() == auth.uid
+
+  isHostOrAnonymousHost(sid = $sid, uid): auth != null && root.child('sessions-v3/'+ sid).exists() &&
+    (
+      root.child('sessions-v3/' + sid + '/hostUID').val() == auth.uid ||
+      (
+        root.child('sessions-v3/' + sid + '/anonymousHostUID').val() == auth.uid &&
+        root.child('sessions-v3/' + sid + '/anonymous').val() === true
+      )
+    )
+
+  sessionActive(sid = $sid): root.child('sessions-v3/'+ sid +'/active').val() === true
+
+  isParticipant(sid = $sid, uid = auth.uid): auth != null && root.child('sessions-v3/'+ sid +'/participants/'+uid).exists()
+
+  dataCreation(): "!data.exists() && newData.exists()"
+
+  dataDeletion(): "data.exists() && !newData.exists()"
+
+  closeTime(): newData.isNumber() && newData.val() > now - 30000 && newData.val() < now + 2000
+
+  usersActiveSession(uid = auth.uid): root.child('users/' + uid + '/active-session').val()
+
+  sessionRef(sid = $sid): root.child('sessions-v3/' + sid)
+
+  sessionHistoryRef(uid = auth.uid, sid = $sid): root.child('users/' + uid + '/session-history/' + sid)
+
+  isPaidUser(uid = auth.uid): root.child('licences-settings/tier-usage').child(root.child('users').child(uid).child('max-tier').val() + '').exists()  
+
+  isTempUser(uid = auth.uid): root.child('temp-users/' + uid).exists()
+
+  publicSearch(): query.orderByChild === 'public' && query.equalTo === true
+
+  searchByOwnerOrTemp():  query.orderByChild === 'owner' &&  (
+                            query.equalTo === auth.uid ||
+                            root.child('temp-users/'+auth.uid).child(query.equalTo).exists()
+                          )
+
+  isOwner(): data.child('owner').val() === auth.uid 
+
+  isTempOwner(): root.child('temp-users/'+auth.uid).child(data.child('owner').val()).exists()
+
+  isPublic(): data.child('public').val() === true
+
+.read: isSuperUser()
+
+file-status: 
+  $uid: 
+    .read: isMe()
+
+proxy-links: 
+  .indexOn: info/profileID
+
+contact-messages:
+  $messageID: 
+    .write: |
+      !data.exists() && 
+      newData.exists() && 
+      newData.hasChildren(['message', 'users', 'email', 'firstName', 'lastName', 'company', 'jobTitle'])
+
+    users:
+      .validate: newData.exists() && newData.isNumber()
+
+    message: 
+      .validate: isStringBetween(0, 500)
+
+    email: 
+      .validate: isStringBetween(0, 320)
+
+    .[firstNamelastname|company|jobTitle|company-title]: 
+      .validate: isStringBetween(0, 250)
+
+apps: 
+  .read: true
+  .write: isSuperUser()
+  $appID: 
+    url: 
+      .validate: isStringBetween(0, 512)
+
+otps:
+  $uid:
+    expires: 
+      .read: data.exists() && isMe()
+ 
+licences-settings:
+  usage-template: 
+    .read: true
+
+  tier-usage: 
+    .read: true
+
+  tier-info: 
+    .read: publicSearch()
+    .indexOn: ["public"]
+
+  tier-names: 
+    .read: true
+
+licences: 
+  $lid: 
+    .read: auth !== null && auth.token.email_verified === true && 
+        root.child('licences/'+$lid+'/users/'+auth.uid+'/status').exists() &&
+        root.child('licences-settings/statuses/'+root.child('licences/'+$lid+'/users/'+auth.uid+'/status').val()).val() > 1
+
+    $key: 
+      .read: |
+        auth !== null && auth.token.email_verified === true && 
+        root.child('licences/'+$lid+'/users/'+auth.uid).exists() && 
+        (
+          $key === 'seats'||
+          $key === 'tier' ||
+          $key === 'oldTier' ||
+          $key === 'licenceName' ||
+          $key === 'disabled'
+        )
+
+    users:
+      $uid:
+        .read: isMeVerified($uid)
+
+sessions-v3:
+  .indexOn: ["active", "hostUID"]
+  .read: auth.uid !== null && query.orderByChild === 'hostUID' && query.equalTo === auth.uid    
+  $sid:
+    .read: isHostOrAnonymousHost($sid)
+    .[active|hostUID|anonymous]:
+      .read: true
+
+    anonymousHostUID:
+      .read: true
+      .write: auth != null && 
+              root.child('sessions-v3/'+$sid+'/anonymous').val() === true &&
+              dataCreation() &&
+              newData.val() === auth.uid
+
+    participants:
+      $uid:
+        .read: isMe()
+
+    info:
+      .read: true
+      .write: isHost()
+      .validate: newData.exists() && newData.hasChild('startTime')
+
+      .[startTime|duration]: 
+        .validate: newData.isNumber() 
+
+      .[description|startDate|timezone]: 
+        .validate: newData.isString() 
+
+      profileID:
+        .validate: newData.isString() && root.child('users/' + auth.uid + '/settings/profiles/' + newData.val()).exists()
+
+      $other_key: { .validate: false }
+
+    iceServers:
+      .read: isParticipant()
+
+    requests:
+      $uid:
+        .write: isMe() && dataCreation() && sessionActive()
+        .read: isMe()
+        .validate: isStringBetween(-1, 512)
+
+    updates:
+      .read: true
+      host:
+        .write: isHostOrAnonymousHost()
+        .validate: closeTime() 
+      $uid:
+        .write: isParticipant()
+        .validate: closeTime()
+
+session-data:
+  $sid:
+    .[apps|chat|cursors|eye-gaze|logs|settings|session-main|share-content|tool-bar|video-call|walk-through|quiz]:
+      .read: isHostOrAnonymousHost($sid) || isParticipant($sid)
+      .write: isHostOrAnonymousHost($sid) || isParticipant($sid)
+
+    video-call:
+      .read: isHostOrAnonymousHost() || isParticipant()
+      host: 
+        .write: isHostOrAnonymousHost()
+        .[descriptions|candidates]:
+          $arrayIndex:
+            .write: newData.exists() && isParticipant($sid)
+
+      participant:
+        .write: isParticipant() && sessionActive()
+        .[audio|video]:
+          .write: newData.exists() && isHostOrAnonymousHost()
+
+        .[descriptions|candidates]:
+          $arrayIndex:
+            .write: newData.exists() && isHostOrAnonymousHost()
+
+    tool-bar:
+      locked:
+        .read: isHostOrAnonymousHost() || isParticipant()
+        .write: newData.isBoolean() && (isHostOrAnonymousHost() || isParticipant())
+
+    logs:
+      .read: isHostOrAnonymousHost() || isParticipant()
+      $lid:
+        .write: isHostOrAnonymousHost() || isParticipant()
+
+        time:
+          .validate: newData.isNumber()
+
+        isHost:
+          .validate: newData.isBoolean()
+
+        .[key|value|oldValue|note]:
+          .validate: isStringBetween(0, 1024) || newData.isNumber() || newData.isBoolean()
+
+        $otherKeys: { .validate: false }
+    
+    aac:
+      .read: isHostOrAnonymousHost() || isParticipant()
+      .write: isHostOrAnonymousHost() || isParticipant()
+      topics:
+        $idx:
+          .validate: isStringBetween(0, 50)
+      topic:
+        .validate: newData.isString()
+
+users: 
+  .indexOn: ["email"]
+  $uid: 
+    .read: isMeVerified()
+    settings:
+      .read:  isMe() || (sessionActive(usersActiveSession($uid)) && isParticipant(usersActiveSession($uid), auth.uid))
+      .write: isMe() || (sessionActive(usersActiveSession($uid)) && isParticipant(usersActiveSession($uid), auth.uid))
+
+    info:
+      .read: isMeVerified()
+      .write: isMe() && (!data.exists() || auth.token.email_verified == true)
+
+      .[displayName|firstName|lastName|email|pronouns|displayPhoto]:
+        .validate: newData.isString()
+
+      .[hostVideo|hostAudio|participantVideo|participantAudio|dark]:
+        .validate: newData.isBoolean()
+
+      optionalData:
+        .validate: newData.isBoolean()
+
+      requiredData:
+        .validate: newData.isBoolean()
+
+      $other:
+        .validate: false
+
+    responses:
+      .write: isMeVerified()
+      $sid:
+        .write: isMe() && 
+                dataCreation() && 
+                newData.hasChild('date') &&
+                (
+                  sessionHistoryRef($uid, $sid).exists() || 
+                  ( 
+                    sessionRef($sid).exists() &&
+                    ( 
+                      sessionRef($sid).child('hostUID').val() === $uid ||
+                      sessionRef($sid).child('anonymousHostUID').val() === $uid 
+                    )
+                  )
+                )
+
+        .[date|npsScore]:
+          .validate: newData.isNumber()
+
+        experience:
+          .validate: isStringBetween(0, 20)
+
+        experiencedDifficulties:
+          .validate: newData.isBoolean()
+
+        technicalDifficulties:
+          $td:
+            .validate: ($td == '0' || $td == '1' || $td == '2' || $td == '3') && newData.isString() && newData.val().length < 50
+
+        comments:
+          .validate: isStringBetween(0, 512)
+        $otherKeys: { .validate: false }
+
+    sessions:
+      $sid:
+        .[description|startDate|timezone|status]:
+          .validate: newData.isString()
+
+        .[date|duration]:
+          .validate: newData.isNumber()
+
+        id:
+          .validate: newData.val() == $sid
+
+        $other:
+          .validate: false
+
+    session-history:
+      $sid:
+        .write: "!newData.exists()"
+
+    metrics:
+      lastSignInTime:
+        .write: isMe()
+        .validate: closeTime()
+
+messages:
+  $mid: 
+    .write: auth != null && 
+            auth.token.email_verified == true && 
+            dataCreation()
+
+    .[firstName|lastName|email|attachment]: 
+      .validate: isStringBetween(0, 256)
+    message: 
+      .validate: isStringBetween(0, 1024)
+
+    $other: 
+      .validate: false
+
+quizes: 
+  .indexOn: ["public", "owner", "name"]
+  .read:  auth.uid !== null && (
+            ( (isPaidUser() || isTempUser()) &&  publicSearch() )  ||
+            searchByOwnerOrTemp()
+          )
+
+  $qid: 
+    .read: auth != null && 
+              ( (isPaidUser() || isTempUser()) && isPublic() ) ||
+              (  isOwner() || isTempOwner() )
+
+    .write: auth !== null && dataDeletion() && isOwner()
+
+grid-topics: 
+  .indexOn: [public, owner, name]
+  .read:  auth.uid !== null && (
+          ( 
+            (isPaidUser() || isTempUser()) &&  isPublic() ) ||
+            searchByOwnerOrTemp()
+          )
+  $topicUID: 
+      .write: |
+              auth != null && 
+              isPaidUser() &&
+              (newData.exists() ? newData.hasChildren(['owner', 'name', 'public', 'size', 'items']) : true) && 
+              (data.exists() ? isOwner() : true)
+
+      .read:  auth != null && (
+                ( 
+                  (isPaidUser() || isTempUser()) && 
+                  data.child('public').val() === true 
+                ) || 
+                isOwner() || 
+                isTempOwner()
+              )
+        
+
+      owner: 		
+        .validate: newData.isString() && isMe(newData.val())
+
+      name: 		
+        .validate: isStringBetween(0, 512)
+
+      .[starter|public]: 	
+        .validate: newData.isBoolean()
+
+      size:
+        .validate: newData.isString() && root.child('grid-topic-settings/sizes').child(newData.val()).exists()
+
+      items: 
+          $itemIndex: 
+              .validate: (
+                (root.child('grid-topics/' + $topicUID + '/size').exists() && 
+                root.child('grid-topic-settings/item-keys-by-size').child(root.child('grid-topics/' + $topicUID + '/size').val()).child($itemIndex).exists()) || 
+                (newData.parent().parent().child('size').exists() && 
+                  root.child('grid-topic-settings/item-keys-by-size').child(newData.parent().parent().child('size').val()).child($itemIndex).exists() )
+                ) && ((newData.hasChild('hidden') && newData.child('hidden').val() == true) || newData.hasChildren(['hidden', 'type', 'displayValue']))
+              hidden:  
+                .validate: newData.isBoolean() 
+
+              displayValue:  
+                .validate: isStringBetween(-1, 512)
+
+              symbol: 
+                  .[url|id]: 		
+                    .validate: isStringBetween(0, 256)
+                 
+                  $osym: 	
+                    .validate: false
+
+              utterance: 
+                .validate: "!newData.exists() || isStringBetween(0, 512)"
+
+
+              # Type is set to string that is also a key in the grid-topic-settings/item-types library AND
+              # if the type is topic then topicUID must also be set.
+              type: 
+                .validate: |
+                            newData.isString() && root.child('grid-topic-settings/item-types').child(newData.val()).exists() && 
+                            (root.child('grid-topic-settings/item-types').child(newData.val()).val() == true ? newData.parent().hasChild('topicUID') : true)
+
+              topicUID: 
+                .validate: | 
+                            newData.isString() && root.child('grid-topics').child(newData.val()).exists() &&  
+                            ((auth != null && root.child('grid-topics').child(newData.val()).child('owner').val() === auth.uid) ||
+                            root.child('grid-topics').child(newData.val()).child('public').val() === true )
+              $oitem: 
+                .validate: false
+          
+      $otopic: 
+        .validate: false
+  
+
+  
+  
+    
+    
