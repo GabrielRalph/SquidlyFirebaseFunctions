@@ -94,7 +94,7 @@ async function endSession(sid) {
             usersRef(ownerHostUID, "active-session").set(null),   // Remove active session reference from the host
             
             // Save session history to the owner host's session history
-            userSessionsRef(subHostUID, sid).set({                    
+            userSessionsRef(ownerHostUID, sid).set({                    
                 duration: duration,
                 startTime: startTime,
                 info: session.info || null,

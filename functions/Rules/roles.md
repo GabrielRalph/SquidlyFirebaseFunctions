@@ -32,4 +32,3 @@ then the original string would resolve to:
 
 your goal is to create a js module with entry point function called: resolveDataScope(data)
 that resolves the dataScope data provided.
-
