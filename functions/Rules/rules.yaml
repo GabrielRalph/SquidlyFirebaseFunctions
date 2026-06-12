@@ -18,11 +18,11 @@
       root.child('sessions-v3/' + sid + '/hostUID').val() == auth.uid ||
       (
         root.child('sessions-v3/' + sid + '/anonymousHostUID').val() == auth.uid &&
-        root.child('sessions-v3/' + sid + '/anonymous').val() === true
+        root.child('sessions-v3/' + sid + '/anonymous').val() == true
       )
     )
 
-  sessionActive(sid = $sid): root.child('sessions-v3/'+ sid +'/active').val() === true
+  sessionActive(sid = $sid): root.child('sessions-v3/'+ sid +'/active').val() == true
 
   isParticipant(sid = $sid, uid = auth.uid): auth != null && root.child('sessions-v3/'+ sid +'/participants/'+uid).exists()
 
@@ -38,22 +38,26 @@
 
   sessionHistoryRef(uid = auth.uid, sid = $sid): root.child('users/' + uid + '/session-history/' + sid)
 
-  isPaidUser(uid = auth.uid): root.child('licences-settings/tier-usage').child(root.child('users').child(uid).child('max-tier').val() + '').exists()  
+  isPaidUser(uid = auth.uid): (
+      root.child('users').child(uid).child('max-tier').exists() 
+        && 
+      root.child('licences-settings/tier-usage').child(root.child('users').child(uid).child('max-tier').val() + '').exists()
+    )
 
   isTempUser(uid = auth.uid): root.child('temp-users/' + uid).exists()
 
-  publicSearch(): query.orderByChild === 'public' && query.equalTo === true
+  publicSearch(): query.orderByChild == 'public' && query.equalTo == true
 
-  searchByOwnerOrTemp():  query.orderByChild === 'owner' &&  (
-                            query.equalTo === auth.uid ||
+  searchByOwnerOrTemp():  query.orderByChild == 'owner' &&  (
+                            query.equalTo == auth.uid ||
                             root.child('temp-users/'+auth.uid).child(query.equalTo).exists()
                           )
 
-  isOwner(): data.child('owner').val() === auth.uid 
+  isOwner(): data.child('owner').val() == auth.uid 
 
   isTempOwner(): root.child('temp-users/'+auth.uid).child(data.child('owner').val()).exists()
 
-  isPublic(): data.child('public').val() === true
+  isPublic(): data.child('public').val() == true
 
 .read: isSuperUser()
 
@@ -111,20 +115,20 @@ licences-settings:
 
 licences: 
   $lid: 
-    .read: auth !== null && auth.token.email_verified === true && 
+    .read: auth != null && auth.token.email_verified == true && 
         root.child('licences/'+$lid+'/users/'+auth.uid+'/status').exists() &&
         root.child('licences-settings/statuses/'+root.child('licences/'+$lid+'/users/'+auth.uid+'/status').val()).val() > 1
 
     $key: 
       .read: |
-        auth !== null && auth.token.email_verified === true && 
+        auth != null && auth.token.email_verified == true && 
         root.child('licences/'+$lid+'/users/'+auth.uid).exists() && 
         (
-          $key === 'seats'||
-          $key === 'tier' ||
-          $key === 'oldTier' ||
-          $key === 'licenceName' ||
-          $key === 'disabled'
+          $key == 'seats'||
+          $key == 'tier' ||
+          $key == 'oldTier' ||
+          $key == 'licenceName' ||
+          $key == 'disabled'
         )
 
     users:
@@ -133,7 +137,7 @@ licences:
 
 sessions-v3:
   .indexOn: ["active", "hostUID"]
-  .read: auth.uid !== null && query.orderByChild === 'hostUID' && query.equalTo === auth.uid    
+  .read: auth != null && query.orderByChild == 'hostUID' && query.equalTo == auth.uid    
   $sid:
     .read: isHostOrAnonymousHost($sid)
     .[active|hostUID|anonymous]:
@@ -142,9 +146,9 @@ sessions-v3:
     anonymousHostUID:
       .read: true
       .write: auth != null && 
-              root.child('sessions-v3/'+$sid+'/anonymous').val() === true &&
+              root.child('sessions-v3/'+$sid+'/anonymous').val() == true &&
               dataCreation() &&
-              newData.val() === auth.uid
+              newData.val() == auth.uid
 
     participants:
       $uid:
@@ -196,16 +200,16 @@ session-data:
         .write: isHostOrAnonymousHost()
         .[descriptions|candidates]:
           $arrayIndex:
-            .write: newData.exists() && isParticipant($sid)
+            .write: "!newData.exists() && isParticipant($sid)"
 
       participant:
         .write: isParticipant() && sessionActive()
         .[audio|video]:
-          .write: newData.exists() && isHostOrAnonymousHost()
+          .write: newData.exists() && isHost()
 
         .[descriptions|candidates]:
           $arrayIndex:
-            .write: newData.exists() && isHostOrAnonymousHost()
+            .write: "!newData.exists() && isHostOrAnonymousHost()"
 
     tool-bar:
       locked:
@@ -251,9 +255,11 @@ users:
 
       .[displayName|firstName|lastName|email|pronouns|displayPhoto]:
         .validate: newData.isString()
+        .read: true
 
       .[hostVideo|hostAudio|participantVideo|participantAudio|dark]:
         .validate: newData.isBoolean()
+        .read: true
 
       optionalData:
         .validate: newData.isBoolean()
@@ -275,8 +281,8 @@ users:
                   ( 
                     sessionRef($sid).exists() &&
                     ( 
-                      sessionRef($sid).child('hostUID').val() === $uid ||
-                      sessionRef($sid).child('anonymousHostUID').val() === $uid 
+                      sessionRef($sid).child('hostUID').val() == $uid ||
+                      sessionRef($sid).child('anonymousHostUID').val() == $uid 
                     )
                   )
                 )
@@ -337,7 +343,7 @@ messages:
 
 quizes: 
   .indexOn: ["public", "owner", "name"]
-  .read:  auth.uid !== null && (
+  .read:  auth != null && (
             ( (isPaidUser() || isTempUser()) &&  publicSearch() )  ||
             searchByOwnerOrTemp()
           )
@@ -347,11 +353,11 @@ quizes:
               ( (isPaidUser() || isTempUser()) && isPublic() ) ||
               (  isOwner() || isTempOwner() )
 
-    .write: auth !== null && dataDeletion() && isOwner()
+    .write: auth != null && dataDeletion() && isOwner()
 
 grid-topics: 
   .indexOn: [public, owner, name]
-  .read:  auth.uid !== null && (
+  .read:  auth != null && (
           ( 
             (isPaidUser() || isTempUser()) &&  isPublic() ) ||
             searchByOwnerOrTemp()
@@ -364,11 +370,10 @@ grid-topics:
               (data.exists() ? isOwner() : true)
 
       .read:  auth != null && (
-                ( 
-                  (isPaidUser() || isTempUser()) && 
-                  data.child('public').val() === true 
-                ) || 
+                ( (isPaidUser() || isTempUser()) && isPublic() ) || 
+
                 isOwner() || 
+
                 isTempOwner()
               )
         
@@ -420,8 +425,8 @@ grid-topics:
               topicUID: 
                 .validate: | 
                             newData.isString() && root.child('grid-topics').child(newData.val()).exists() &&  
-                            ((auth != null && root.child('grid-topics').child(newData.val()).child('owner').val() === auth.uid) ||
-                            root.child('grid-topics').child(newData.val()).child('public').val() === true )
+                            ((auth != null && root.child('grid-topics').child(newData.val()).child('owner').val() == auth.uid) ||
+                            root.child('grid-topics').child(newData.val()).child('public').val() == true )
               $oitem: 
                 .validate: false
           
