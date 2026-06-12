@@ -50,12 +50,13 @@ async function endSession(sid) {
     let duration = 0;
     let session = (await sessionsRef(sid).get()).val();
     if (session != null && session.active === true) {
-        let {hostUID, anonymouse, anonymousHostUID, startTime} = session;
-        debug(`SESSIONS: Ending session ${sid} for host ${hostUID}`);
-
-        let subHostUID = anonymouse ? anonymousHostUID : hostUID;
+        let {hostUID, anonymous, anonymousHostUID, startTime} = session;
+        let subHostUID = anonymous ? anonymousHostUID : hostUID;
         let ownerHostUID = hostUID;
-
+        
+        debug(anonymous ? 
+            `SESSIONS: Ending anonymous session ${sid} for host ${hostUID} (anonymous host: ${anonymousHostUID})` :
+            `SESSIONS: Ending session ${sid} for host ${hostUID}`);
         // Compute the duration of the session.
         let now = (new Date()).getTime();
         if (typeof startTime === "number") {
@@ -76,6 +77,10 @@ async function endSession(sid) {
             sessionLogs = parseSessionLogs( Object.values(logs.val() || {}) );
             if (sessionLogs !== null) {
                 profileID = sessionLogs.metadata.profile;
+                // Change duration in logs metadata to reflect actual session duration, 
+                // which may differ from the difference between start and end time if 
+                // the session was inactive for a period of time before ending
+                sessionLogs.metadata.duration = duration; 
             }
         } catch (e) {
             console.log("Error parsing session logs for session", sid, ":", e);
@@ -86,14 +91,31 @@ async function endSession(sid) {
             sessionDataRef(sid).set(null),                           // Remove session data
             removeSessionContent(sid),                               // Remove session content
             removeSessionParticipants(session),                      // Remove session participants
-            usersRef(subHostUID, "active-session").set(null),   // Remove active session reference from the host
-            userSessionsRef(subHostUID, sid).set({                      // Update stored session data for the host 
+            usersRef(ownerHostUID, "active-session").set(null),   // Remove active session reference from the host
+            
+            // Save session history to the owner host's session history
+            userSessionsRef(subHostUID, sid).set({                    
+                duration: duration,
+                startTime: startTime,
+                info: session.info || null,
+            }),
+
+            // If the session was anonymous, also save the session history
+            // to the anonymous host's session history
+            anonymous ? userSessionsRef(subHostUID, sid).set({                    
                 duration: duration,
                 startTime: startTime,
                 info: session.info || null, // Include any additional session info
-            }),
+            }) : null,
+
+            // Save session logs to the anonymous host's profile logs if available,
+            // otherwise save to the owner host's profile logs
             usersRef(subHostUID, "profile-logs", profileID, sid).set(sessionLogs),
-            Usage.updateUserUsage(ownerHostUID, {sessions: 1, minutes: duration}) // Update the host's usage
+
+
+            // Always update the owner host's usage with the session duration, 
+            // even for anonymous sessions, to ensure accurate billing and usage tracking
+            Usage.updateUserUsage(ownerHostUID, {sessions: 1, minutes: duration}) 
         ]);
     } else if (session != null && session.active === false) {
         debug(`SESSIONS: Deleting Session ${sid}.`);
