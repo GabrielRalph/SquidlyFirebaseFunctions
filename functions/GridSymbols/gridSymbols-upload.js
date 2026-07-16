@@ -41,16 +41,6 @@ const SEARCH_LIMIT = 12;
 const MAX_FILE_SIZE = 1024 * 150;
 const MAX_NAME_LENGTH = 1000;
 const EMBEDDING_IMAGE_SIZE = 300;
-const ACCEPTED_IMAGE_MIMETYPES = {
-    "image/bmp": "bmp",
-    "image/emf": "emf",
-    "image/jpeg": "jpeg",
-    "image/jpg": "jpeg",
-    "image/heic": "heic",
-    "image/png": "png",
-    "image/svg+xml": "svg+xml",
-    "image/webp": "webp",
-}
 const MIMETYPE_KEY = {
     "image/bmp": "bmp",
     "image/emf": "emf",
@@ -99,14 +89,27 @@ class FileStatus {
  * Converts image at url to png base64 encoded string
  * @param {Buffer} dataBuffer
  */
-async function img2png_base64(dataBuffer) {
-    let imgbuff = await sharp(dataBuffer)
+async function img2png(dataBuffer) {
+    const imgbuff = await sharp(dataBuffer)
     .resize(EMBEDDING_IMAGE_SIZE)
     .png()
     .toBuffer();
 
-    return imgbuff.toString('base64');
+    return imgbuff;
 }
+
+async function phashHex(imageBuffer) {
+    const hash = await phash(imageBuffer);
+    let hex = "";
+    for (let i = 0; i < hash.length; i += 4) {
+        const chunk = hash.slice(i, i + 4);
+        const hexDigit = parseInt(chunk, 2).toString(16);
+        hex += hexDigit;
+    }
+    return hex;
+}
+
+
 
 
 /**
@@ -154,8 +157,8 @@ function validateRequestData(data) {
         if (typeof type !== "string") {
             errors.push("Type must be a string.");
             valid = false;
-        } else if (!(type in ACCEPTED_IMAGE_MIMETYPES)) {
-            errors.push(`Type "${type}" must be a valid image mime type (image/[${Object.values(ACCEPTED_IMAGE_MIMETYPES).join("|")}]).`);
+        } else if (!(type in MIMETYPE_KEY)) {
+            errors.push(`Type "${type}" must be a valid image mime type (image/[${Object.values(MIMETYPE_KEY).join("|")}]).`);
             valid = false;
         }
 
@@ -250,16 +253,6 @@ async function searchSimilar(vector, uid, limit = SEARCH_LIMIT-1) {
 }
 
 
-function hashToHex(hash) {
-    let hex = "";
-    for (let i = 0; i < hash.length; i += 4) {
-        const chunk = hash.slice(i, i + 4);
-        const hexDigit = parseInt(chunk, 2).toString(16);
-        hex += hexDigit;
-    }
-    return hex;
-}
-
 
 /**
  * @param {UploadRequestData} data
@@ -290,10 +283,12 @@ async function uploadSymbol(data, auth){
         /* ~~~~~~~~~~~~~~~~: stage 1 ~~~~~~~~~~~~~~~~
         /*    convert image to png base64 string    */
         let pngBase64 = null;
+        let pngBuffer = null;
         if (valid) {
             try {
                 end = startTimer();
-                pngBase64 = await img2png_base64(dataBuffer)
+                pngBuffer = await img2png_base64(dataBuffer)
+                pngBase64 = pngBuffer.toString('base64');
                 debug(`GRID-SYMBOLS: Upload Symbol [${end()}ms]: ${name} converted to png.`)
             } catch (e) {
                 valid = false;
@@ -355,8 +350,7 @@ async function uploadSymbol(data, auth){
             try {
                 // try 3 times if an error occurs
                 end = startTimer();
-                const hash = await phash(dataBuffer);
-                const hexHash = hashToHex(hash);
+                const hexHash = await phashHex(pngBuffer);
                 await attempt(3, async () => {
                     symbolRef = await SymbolsRef.add({
                         name: name,
@@ -364,6 +358,7 @@ async function uploadSymbol(data, auth){
                         uid: auth.uid,
                         public: !!public,
                         phash: hexHash,
+                        iconSetPath: null,
                     })
                     symbolID = symbolRef.id;
                 })
@@ -374,7 +369,6 @@ async function uploadSymbol(data, auth){
                 debug("GRID-SYMBOLS: Failed to create document reference.", e);
             }
         }
-    
     
         await status.update(3.3)
     
