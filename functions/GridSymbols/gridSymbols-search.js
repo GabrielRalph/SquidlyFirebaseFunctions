@@ -38,7 +38,7 @@ const TYPES = {
 }
 
 const MAX_TEXT_SIZE = 200;
-const SEARCH_LIMIT = 12;
+const SEARCH_LIMIT = 300;
 
 
 /** Returns a query for either public, user only or both icons
