@@ -25,32 +25,22 @@
  * @typedef {("vector"|"text"|"both")} SearchType
  * */
 
-const phash = require("sharp-phash");
+
 const { debug } = require("firebase-functions/logger");
 const { fstore, sb, db } = require("../firebase.js");
 const { getEmbedding, startTimer, docs2iconInfo, unique } = require("./vectorEmbedd");
 const { getDownloadURL } = require("firebase-admin/storage");
 const {onCall} = require("firebase-functions/v2/https");
 const { FieldValue } = require('firebase-admin/firestore');
-const sharp = require('sharp');
+
 const { getUsersMaxTier } = require("../Licences/shared.js");
+const { phashHex, img2png } = require("./shared.js");
 
 const TEST_MODE = false;
 
 const SEARCH_LIMIT = 12;
 const MAX_FILE_SIZE = 1024 * 150;
 const MAX_NAME_LENGTH = 1000;
-const EMBEDDING_IMAGE_SIZE = 300;
-const MIMETYPE_KEY = {
-    "image/bmp": "bmp",
-    "image/emf": "emf",
-    "image/jpeg": "jpeg",
-    "image/jpg": "jpeg",
-    "image/heic": "heic",
-    "image/png": "png",
-    "image/svg+xml": "svg",
-    "image/webp": "webp",
-}
 const ICONS_DIR = TEST_MODE ? "icons/test" : "icons/all"
 
 /** @type {CollectionRef} */
@@ -83,34 +73,6 @@ class FileStatus {
         await this.ref.remove();
     }
 }
-
-
-/**
- * Converts image at url to png base64 encoded string
- * @param {Buffer} dataBuffer
- */
-async function img2png(dataBuffer) {
-    const imgbuff = await sharp(dataBuffer)
-    .resize(EMBEDDING_IMAGE_SIZE)
-    .png()
-    .toBuffer();
-
-    return imgbuff;
-}
-
-async function phashHex(imageBuffer) {
-    const hash = await phash(imageBuffer);
-    let hex = "";
-    for (let i = 0; i < hash.length; i += 4) {
-        const chunk = hash.slice(i, i + 4);
-        const hexDigit = parseInt(chunk, 2).toString(16);
-        hex += hexDigit;
-    }
-    return hex;
-}
-
-
-
 
 /**
  * @param {UploadRequestData} data
@@ -287,7 +249,7 @@ async function uploadSymbol(data, auth){
         if (valid) {
             try {
                 end = startTimer();
-                pngBuffer = await img2png_base64(dataBuffer)
+                pngBuffer = await img2png(dataBuffer)
                 pngBase64 = pngBuffer.toString('base64');
                 debug(`GRID-SYMBOLS: Upload Symbol [${end()}ms]: ${name} converted to png.`)
             } catch (e) {
@@ -442,6 +404,8 @@ async function uploadSymbol(data, auth){
 
 
 module.exports = {
+    img2png,
+    phashHex,
     upload: onCall({
         region: "australia-southeast1"
     },async ({auth, data}) => {

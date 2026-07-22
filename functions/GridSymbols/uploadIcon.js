@@ -1,75 +1,19 @@
 const { fstore, sb, db } = require("../firebase.js");
 const { getEmbedding, startTimer, docs2iconInfo, unique } = require("./vectorEmbedd");
-const { FieldValue } = require('firebase-admin/firestore');
-const sharp = require('sharp');
+const { FieldValue, DocumentReference } = require('firebase-admin/firestore');
 const fs = require('fs');
 const { getDownloadURL } = require("firebase-admin/storage");
-const phash = require("sharp-phash");
-
-/**
- * Converts image at url to png base64 encoded string
- * @param {Buffer} dataBuffer
- */
-async function img2png_base64(dataBuffer) {
-    let imgbuff = await sharp(dataBuffer)
-    .png()
-    .toBuffer();
-
-    return imgbuff.toString('base64');
-}
-
-function hashToHex(hash) {
-    let hex = "";
-    for (let i = 0; i < hash.length; i += 4) {
-        const chunk = hash.slice(i, i + 4);
-        const hexDigit = parseInt(chunk, 2).toString(16);
-        hex += hexDigit;
-    }
-    return hex;
-}
-
-
-const MIMETYPE_KEY = {
-    "image/bmp": "bmp",
-    "image/emf": "emf",
-    "image/jpeg": "jpeg",
-    "image/jpg": "jpeg",
-    "image/heic": "heic",
-    "image/png": "png",
-    "image/svg+xml": "svg",
-    "image/webp": "webp",
-    "png": "png",
-    "jpeg": "jpeg",
-    "jpg": "jpeg",
-    "bmp": "bmp",
-    "emf": "emf",
-    "heic": "heic",
-    "svg": "svg",
-    "webp": "webp",
-}
-
-const FORMAT_2_MIMETYPE = {
-    "bmp": "image/bmp",
-    "emf": "image/emf",
-    "jpeg": "image/jpeg",
-    "jpg": "image/jpeg",
-    "heic": "image/heic",
-    "png": "image/png",
-    "svg": "image/svg+xml",
-    "webp": "image/webp",
-}
-
+const { img2png, phashHex, MIMETYPE_KEY, getType } = require("./shared.js");
 
 const uploadIconSteps = [
     async (scope) => {
         const {srcFilename} = scope;
         const imageData = fs.readFileSync(srcFilename);
         scope.imageData = imageData;
-        const hash = await phash(imageData);
-        scope.hash = hashToHex(hash);
-        scope.base64 = await img2png_base64(imageData);
-        const format = (await sharp(imageData).metadata()).format;
-        scope.type = format in FORMAT_2_MIMETYPE ? FORMAT_2_MIMETYPE[format] : null;
+        const pngBuffer = await img2png(imageData);
+        scope.base64 = pngBuffer.toString('base64');
+        scope.hash = await phashHex(pngBuffer);
+        scope.type = await getType(imageData);
         if (!scope.base64 || !scope.type) {
             throw new Error("Error processing image");
         }
@@ -87,7 +31,10 @@ const uploadIconSteps = [
     },
     async (scope) => {
         // Create a new document in Firestore with the download URL and vector embedding
-        scope.docRef = await fstore.collection(scope.isTest ? 'icons-test' : 'icons').add({
+        /** @type {DocumentReference} */
+        const docRef = scope.docRef ? scope.docRef : fstore.collection(scope.isTest ? 'icons-test' : 'icons').doc();
+        scope.docRef = docRef;
+        await docRef.set({
             embedding: scope.embedding,
             name: scope.name,
             type: MIMETYPE_KEY[scope.type],
@@ -140,7 +87,6 @@ async function uploadIcon(srcFilename, ops = {
     }
 
     if (i === uploadIconSteps.length) {
-        // console.log("Icon uploaded successfully with ID:", scope.docRef.id);
         return scope.docRef.id;
     } else {
         return null;
