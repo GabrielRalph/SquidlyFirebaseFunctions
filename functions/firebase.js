@@ -1,6 +1,6 @@
 const { getDatabase } = require("firebase-admin/database");
 const { getStorage } = require("firebase-admin/storage");
-const { getFirestore } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getAuth } = require("firebase-admin/auth");
 const admin = require("firebase-admin");
 
@@ -17,7 +17,6 @@ if (process.env.TEST === "true") {
     // PRODUCTION
     admin.initializeApp();
 }
-
 
 
 const db = getDatabase();
@@ -69,4 +68,4 @@ async function getUserName(uid) {
 }
 
 
-module.exports = {admin, db, Auth, Storage, sb, fstore, getUserName, getUserData, setUserData, updateUserData, getUserLicence};
+module.exports = {admin, db, Auth, Storage, sb, fstore, getUserName, getUserData, setUserData, updateUserData, getUserLicence, FieldValue};
