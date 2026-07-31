@@ -16,10 +16,34 @@
  * @param {SubscriptionMetadata} metadata
  * @param {string} id
  * @param {{data: StripeItem[]}} items
+ * 
+ * 
+ * @typedef {Object} CreateSubscriptionCheckoutParams
+ * @property {import("./shared").UID} creatorUID
+ * @property {string} productID the ID of the product to create a subscription for.
+ * @property {string} priceIndex index of the price in the product's prices array.
+ * @property {number} quantity number of seats.
+ * @property {string} return_url the URL to redirect the user to after the checkout is complete.
+ * @property {string} licenceID the id of licence creator wants to renew.
+ * @property {boolean} isTest whether to use the test or live stripe API.
+ * @property {boolean} isPublic whether this is a public call.
+ * @property {number} [trialPeriod] the number of days to apply a trial period for.
  */
 
+const DEFAULT_PARAMS = {
+    creatorUID: "",
+    productID: "",
+    priceIndex: 0,
+    quantity: 1,
+    return_url: "",
+    licenceID: "",
+    isTest: true,
+    isPublic: false,
+    trialPeriod: null,
+}
+
 const { refPath, usersRef } = require("../../Shared/shared.js");
-const { createLicence, licencesRef, isBillerLevel, updateLicenceTier, updateLicenceSeats, suspendLicence } = require("../shared.js");
+const { createLicence, licencesRef, isBillerLevel, updateLicenceTier, updateLicenceSeats, suspendLicence, specialOfferRef } = require("../shared.js");
 const { Auth } = require('../../firebase.js');
 let { debug } = require("firebase-functions/logger");
 const { FirebaseAuthError } = require("firebase-admin/auth");
@@ -148,10 +172,13 @@ class SubscriptionDetails {
             const sessionsList = await stripe.checkout.sessions.list({
                 subscription: this.object.id,
             })
-            const session = sessionsList.data[0];
-            let fields = session.custom_fields.filter(a => a.key == "organisation");
+            const session = sessionsList?.data[0];
+            let fields = (session?.custom_fields || []).filter(a => a.key == "organisation");
             if (fields.length > 0) {
-                name = fields[0].text.value;
+                let value = fields[0]?.text?.value;
+                if (isNonEmptyString(value)) {
+                    name = value;
+                }
             }
         } catch (e) {
             debug("STRIPE: Error retreiving licence name.", e)
@@ -193,7 +220,7 @@ class SubscriptionDetails {
     }
 
     static STATUS_VALUES = {
-        "inclomplete": false,
+        "incomplete": false,
         "incomplete_expired": false,
         "past_due": false,
         "canceled": false,
@@ -216,9 +243,8 @@ class SubscriptionDetails {
 
 const MAX_USER_SEATS = 10000; // Maximum number of seats a user can purchase in a single subscription.
 
-
 function isNonEmptyString(str) {return typeof str === "string" && str.length > 0}
-
+function isPositiveInteger(num) {return typeof num === "number" && Number.isInteger(num) && num > 0}
 
 async function ownsLicence(creatorUID) {
     let has = false;
@@ -233,36 +259,37 @@ async function ownsLicence(creatorUID) {
     return has;
 }
 
-/** Creates a subscription check out using stripe.
- * @param {import("./shared").UID} creatorUID
- * @param {string} productID
- * @param {string} priceIndex 
- * @param {number} quantity number of seats.
- * @param {string} return_url
- * @param {string} licenceID the id of licence creator wants to renew.
- * @param {boolean} isTest whether to use the test or live stripe API.
- * @param {boolean} isPublic whether this is a public call.
- * 
- * @return {Promise<{errors: string[], client_secret: string}>}
- */
-async function createSubscriptionCheckout(creatorUID, productID, priceIndex, quantity, return_url, licenceID = "", isTest, isPublic) {
-    let errors = [];
-    let valid = true;
-    let client_secret = null;
 
+/**
+ * Checks that the product ID and price index are valid.
+ * @param {CreateSubscriptionCheckoutParams} args
+ * @param {string[]} errors an array to push error messages to.
+ * 
+ * @return {Promise<[boolean, Object, string, string[]]>} returns a promise that resolves to an array containing:
+ * 1. A boolean indicating whether the product and price are valid.
+ * 2. The product object if valid, otherwise null.
+ * 3. The price ID if valid, otherwise null.
+ * 4. An array of error messages if any.
+ */
+async function validateProductAndPrice(args = {}) {
+    args = !args || typeof args !== "object" ? {} : args;
+    let {productID, priceIndex, isTest, isPublic} = {...DEFAULT_PARAMS, ...args};
+
+    let valid = false;
+    let errors = [];
     let product = await refPath("licences-settings", ["tier-info", productID]).get();
     product = product.val();
     if (product === null) {
         errors.push(`Invalid product ID "${productID}".`);
-        valid = false;
     } else if (!product.public && isPublic) {
         errors.push(`Product with ID "${productID}" is not public.`);
-        valid = false;
     } else if (!(priceIndex in product.prices)) {
         errors.push(`Invalid price index "${priceIndex}" for product with ID "${productID}".`);
-        valid = false;
+    } else {
+        valid = true;
     }
 
+    
     let priceID = null;
     if (valid) {
         let price = product.prices[priceIndex];
@@ -271,11 +298,40 @@ async function createSubscriptionCheckout(creatorUID, productID, priceIndex, qua
         if (!isNonEmptyString(priceID)) {
             errors.push(`Invalid price ID "${priceID}" for price "${JSON.stringify(price)}".`);
             valid = false;
-        }
-    
-        if (typeof quantity !== "number" || quantity <= 0 || quantity > MAX_USER_SEATS) {
-            quantity = 1;
-        }
+        } 
+    }
+    return [valid, product, priceID, errors];
+}
+
+
+/** Creates a subscription check out using stripe.
+ * 1. Validates the input parameters.
+ *  - Checks that the product ID and price index are valid.
+ * 
+ *  - Checks that the user has biller priviledges for 
+ *    the licence if a licence ID is provided.
+ * 2. Creates a stripe customer if one does not exist.
+ * 3. Creates a stripe checkout session for the subscription.
+ *  - If a trial period is specified then apply it.
+ *    Otherwise if the product has a trial period and 
+ *    either the user does not own a licence or the product
+ *    forces a trial apply the trial.
+ * 
+ * @param {CreateSubscriptionCheckoutParams} args
+ * @return {Promise<{errors: string[], client_secret: string}>}
+ */
+async function createSubscriptionCheckout(args={}) {
+    args = !args || typeof args !== "object" ? {} : args;
+    let {creatorUID, productID, priceIndex, quantity, return_url, licenceID, isTest, isPublic, trialPeriod} = {...DEFAULT_PARAMS, ...args};
+
+    let [valid, product, priceID, errors] = await validateProductAndPrice({productID, priceIndex, isTest, isPublic});
+    let client_secret = null;
+
+    // Ensure quantity is a positive integer and does not exceed the maximum number of seats.
+    if (typeof quantity !== "number" || quantity <= 0 || quantity > MAX_USER_SEATS || Number.isNaN(quantity)) {
+        quantity = 1;
+    } else {
+        quantity = Math.ceil(quantity);
     }
 
     debug("STRIPE:", isTest ? "TEST" : "LIVE", `Creating subscription checkout for user ${creatorUID} with product ID ${productID}, price index ${priceIndex}, quantity ${quantity}, return URL ${return_url}, licence ID ${licenceID}.`);
@@ -298,8 +354,8 @@ async function createSubscriptionCheckout(creatorUID, productID, priceIndex, qua
 
     // Create stripe customer if one does not exist.
     if (valid && customer == null) {
-        let token = await Auth.getUser(creatorUID); 
-        let date = new Date();
+        const token = await Auth.getUser(creatorUID); 
+        const date = new Date();
         customer = await stripe.customers.create({
             name: `squidly_licence_${creatorUID}_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}`,
             email: token.email,
@@ -314,8 +370,22 @@ async function createSubscriptionCheckout(creatorUID, productID, priceIndex, qua
 
     // Creator is either renewing a licence (they own) or creating a new one.
     if (valid) {
-        let subscription_data = await ownsLicence(creatorUID) ? {} : {trial_period_days: 7};
-        let object = {
+        const subscription_data = {};
+
+        // If a trial period is specified then use that
+        if (isPositiveInteger(trialPeriod)) {
+            subscription_data.trial_period_days = trialPeriod;
+
+        // otherwise if the user does not own a licence then give them a 7 day trial.
+        } else if (
+            isPositiveInteger(product.trialPeriod) &&
+            (product.forceTrial || !(await ownsLicence(creatorUID)))
+        ) {
+            subscription_data.trial_period_days = product.trialPeriod;
+        }
+        
+        // Create a stripe checkout session for the subscription.
+        const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
             customer: customer,
             line_items: [
@@ -354,17 +424,43 @@ async function createSubscriptionCheckout(creatorUID, productID, priceIndex, qua
                   optional: false,
                 },
             ],
-        }
-        
-    
-        // renewing expired licence
-        const session = await stripe.checkout.sessions.create(object);
+        });
         client_secret = session.client_secret;
     }
     
     return {errors, client_secret}
 }
 
+/**
+ * Creates a special offer for a product and price index that expires after a certain number of days.
+ * @param {CreateSubscriptionCheckoutParams} args
+ * @param {number} durationInDays the number of days until the special offer expires.
+ * @returns {Promise<string>} returns a promise that resolves to the special offer token.
+ */
+async function createSpecialOffer(args={}, durationInDays) {
+    args = !args || typeof args !== "object" ? {} : args;
+    const {productID, priceIndex, isTest, trialPeriod} = {...DEFAULT_PARAMS, ...args};
+
+    durationInDays = isPositiveInteger(durationInDays) ? durationInDays : 1; 
+    const  expiry = Date.now() + durationInDays * 24 * 60 * 60 * 1000;
+
+    const [valid, product, priceID, errors] = await validateProductAndPrice({productID, priceIndex, isTest, isPublic: false});
+    
+    let token = null;
+    if (valid) {
+        const offer = {
+            productID,
+            priceIndex,
+            expiry,
+            isTest,
+            trialPeriod: isPositiveInteger(trialPeriod) ? trialPeriod : null,
+        }
+        token = specialOfferRef().push().key;
+        await specialOfferRef(token).set(offer);
+    }
+
+    return token;
+}
 
 /** Called when a subscription event is triggered by stripe webhooks.
  * @param {Subscription} subscription
@@ -374,25 +470,19 @@ async function onSubscriptionEvent(subscription, isTest) {
     const stripe = getStripe(isTest ? "TEST" : "LIVE");
 
     const details = await SubscriptionDetails.get(subscription, stripe);
-    // details.log();
 
     // If no licence ID was parsed then create a new licence.
-    if (!await details.checkLicenceExists(stripe)) {
+    if (!(await details.checkLicenceExists(stripe))) {
         try {
             if (await details.createLicence(stripe, isTest)) {
                 // await sendLicenceCreationEmail(details.email, details.creatorUID);
-                debug(`STRIPE: Successfully created licence with ID ${details.licenceID} for user with UID: ${creatorUID}`);
+                debug(`STRIPE: Successfully created licence with ID ${details.licenceID} for user with UID: ${details.creatorUID}`);
             } else {
                 debug(`STRIPE: creation failed likely due to a creation already occuring.`)
             }
         } catch (e) {
-            if (e instanceof FirebaseAuthError) {
-                e = "Invalid user uid."
-            } else {
-                e = e + "";
-            }
-            valid = false;
-            debug("STRIPE: Error creating licence.", e)
+            debug("STRIPE: Error creating licence.", e instanceof FirebaseAuthError ? "Invalid user uid." : e);
+            throw e;
         }
     }
 
@@ -404,28 +494,35 @@ async function webhookHandler(req, res, isTest) {
     const SIGNING_SECRET = process.env[`STRIPE_SIGNING_SECRET_${isTest ? "TEST" : "LIVE"}`];
     let signature = req.headers["stripe-signature"];
     let event;
+
+    // Verify signature first. If this fails, Stripe should not retry as a processing error.
     try {
         event = stripe.webhooks.constructEvent(
             req.rawBody,
             signature,
             SIGNING_SECRET
         );
-        debug(`STRIPE: event:\n\ttype: ${event.type}\n\tobject: ${event.data.object.object}\n\tcustomer: ${event.data.object.customer}\n\n`);
-        res.sendStatus(200);
+    } catch (error) {
+        debug("STRIPE: Error parsing webhook.", error)
+        return res.sendStatus(400);
+    }
+
+    debug(`STRIPE: event:\n\ttype: ${event.type}\n\tobject: ${event.data.object.object}\n\tcustomer: ${event.data.object.customer}\n\n`);
+
+    try {
         switch (event.type) {
             case "customer.subscription.created":
             case "customer.subscription.updated":
             case "customer.subscription.deleted":
-                try {
-                    await onSubscriptionEvent(event.data.object, isTest);
-                } catch (e) {
-                    debug("STRIPE: Error on subscription call.", e);
-                }
+                await onSubscriptionEvent(event.data.object, isTest);
+                break;
+            default:
                 break;
         }
-    } catch (error) {
-        debug("STRIPE: Error parsing webhook.", error)
-        res.sendStatus(400);
+        return res.sendStatus(200);
+    } catch (e) {
+        debug("STRIPE: Error processing webhook event.", e);
+        return res.sendStatus(500);
     }
 }
 
@@ -439,8 +536,10 @@ async function createBillingPortal(licenceID, return_url) {
 
 
 module.exports = {
+    createSpecialOffer,
     webhookHandler,
     createSubscriptionCheckout,
+    createSpecialOffer,
     createBillingPortal,
     onSubscriptionEvent,
     ownsLicence

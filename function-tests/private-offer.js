@@ -1,9 +1,9 @@
 const {db, Auth} = require('../functions/firebase.js');
 const inquirer =  require('inquirer');
 const { syncStripeProducts } = require('../functions/Licences/Stripe/sync.js');
-const { createSubscriptionCheckout } = require('../functions/Licences/Stripe/billing');
+const { createSubscriptionCheckout, createSpecialOffer } = require('../functions/Licences/Stripe/billing');
 
-async function createSpecialOffer() {
+async function make() {
     await syncStripeProducts();
 
     let products = (await db.ref("licences-settings/tier-info").get()).val();
@@ -23,52 +23,26 @@ async function createSpecialOffer() {
 
     const [product, priceIndex] = res.product;
 
-    let uid = null
-    try {
-        res = await inquirer.default.prompt([{
-            type: "input",
-            name: "email",
-            message: "What is the email of the user this offer is made out to?",
-            default: null,
-        }]);
-        let email = res.email;
-
-        let token = await Auth.getUserByEmail(email);
-        if (!token) {
-            throw email;
-        } else {
-            uid = token.uid;
-        }
-    } catch (e) {
-        uid = null;
-        console.error(`Failed to find user with email: ${e}\nPlease make sure the user exists and has a verified email.`);
-    }
-
-
     res = await inquirer.default.prompt([{
         type: "confirm",
         name: "isTest",
         message: "Is this a test offer?",
         default: true,
     }]);
+    
+    let {errors, client_secret} = await createSpecialOffer({
+        productID: product.id, 
+        priceIndex, 
+        quantity: 1, 
+        isTest: res.isTest,
+    }, 30);
 
-    if (uid) {
-        let {errors, client_secret} = await createSubscriptionCheckout({
-            creatorUID: uid, 
-            productID: product.id, 
-            priceIndex, 
-            quantity: 1, 
-            return_url: "https://squidly.com.au/Console", 
-            isTest: res.isTest,
-            isPublic: false
-        });
-        if (errors.length > 0) {
-            console.error("Failed to create special offer:", errors);
-            return;
-        } else {
-            console.log("\nSuccessfully created special offer for user:", uid);
-            console.log("Checkout link: https://squidly.com.au/Console/#licences-page?clientSecret="+client_secret);
-        }
+    if (errors.length > 0) {
+        console.error("Failed to create special offer:", errors);
+        return;
+    } else {
+        console.log("\nSuccessfully created special offer for user:", uid);
+        console.log("Checkout link: https://squidly.com.au/Console/#licences-page?clientSecret="+client_secret);
     }
 }
 

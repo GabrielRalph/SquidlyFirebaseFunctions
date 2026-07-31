@@ -19,12 +19,14 @@ function formatPrice({lookup_key, unit_amount, id, currency, recurring, nickname
     };
 }
 
-function formatProduct({prices, id, name, unit_label, marketing_features, metadata: { attributes, userGuide, tierID, public, keyName }, description}) {
+function formatProduct({prices, id, name, unit_label, marketing_features, metadata: { attributes, userGuide, tierID, public, keyName, trialPeriod}, description}) {
     prices = prices.map(formatPrice);
     prices.sort((a, b) => a.amount - b.amount);
-    tierID = parseInt(tierID);
+    tierID = typeof tierID === "string" ? parseInt(tierID) : 0;
     userGuide = typeof userGuide === "string" ? userGuide : null;
     attributes = typeof attributes === "string" ? attributes.split(",") : null;
+    trialPeriod = typeof trialPeriod === "string" ? parseInt(trialPeriod) : null;
+    forceTrial = typeof forceTrial === "string" && forceTrial === "true";
     return [
         id, {
             id: id,
@@ -32,11 +34,13 @@ function formatProduct({prices, id, name, unit_label, marketing_features, metada
             displayName: name,
             tierID,
             name: keyName,
+            trialPeriod,
             description: description || "",
             public: public === "true",
             features: marketing_features.map(f => f.name),
             unit: unit_label || "items",
             prices,
+            forceTrial,
             attributes: attributes ? attributes.map(a => a.trim()) : null,
         }
     ]

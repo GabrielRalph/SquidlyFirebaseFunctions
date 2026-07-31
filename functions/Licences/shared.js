@@ -120,6 +120,16 @@ function licencesRef(...path) {
     return refPath("licences", path)
 }
 
+/**
+ * @param {string} token
+ * 
+ * @return {import("firebase-admin/database").Reference}
+ */
+function specialOfferRef(token) {
+    return refPath("special-offers", [token])
+}
+
+
 /** Checks a given licence and returns the status level of a given user.
  * @param {UID} uid user ui
  * @param {lid} lid licence id
@@ -783,5 +793,5 @@ module.exports = {
     suspendLicence,
 
     getUsersMaxTier,
-    
+    specialOfferRef
 }
