@@ -511,6 +511,11 @@
           ".validate": false
         }
       }
+    },
+    "connect-four": {
+      "$gameID": {
+        ".write": "auth != null &&  newData.hasChildren(['sequence', 'lastPlayer']) && (newData.child('lastPlayer')).isString() && (newData.child('lastPlayer').val()) == auth.uid && (newData.child('sequence')).isString() && (newData.child('sequence').val()).match(/^[0-6]+$/) && (!(newData.child('sequence').val()).matches(/(0[^0]*{7})|(1[^1]*{7})|(2[^2]*{7})|(3[^3]*{7})|(4[^4]*{7})|(5[^5]*{7})|(6[^6]*{7})/)) && (   data.exists() ?      (       (data.child('lastPlayer').val()) != auth.uid &&       (newData.child('sequence').val()).startsWith((data.child('sequence').val())) &&        (newData.child('sequence').val()).length == (data.child('sequence').val()).length + 1     ) :     (newData.child('sequence').val()).length == 1  )"
+      }
     }
   }
 }

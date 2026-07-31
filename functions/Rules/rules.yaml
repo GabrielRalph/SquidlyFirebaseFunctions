@@ -436,5 +436,32 @@ grid-topics:
 
   
   
-    
-    
+connect-four:
+  .functions:
+    MX(x): (x[^x]*){7}
+    newSequenceSC(): 
+    newSequence(): newData.child('sequence').val()
+    lastPlayer(): data.child('lastPlayer').val()
+    newPlayerSC():
+    newPlayer():
+    oldSequence(): data.child('sequence').val()
+
+  $gameID:
+    .write: |
+            auth != null && 
+            newData.hasChildren(['sequence', 'lastPlayer']) &&
+            newData.child('lastPlayer').isString() &&
+            newData.child('lastPlayer').val() == auth.uid &&
+            newData.child('sequence').isString() &&
+            data.child('sequence').val().matches(/^[0-6]+$/) &&
+            (!data.child('sequence').val().matches(/MX(0)|MX(1)|MX(2)|MX(3)|MX(4)|MX(5)|MX(6)/)) &&
+            (
+              data.exists() ? 
+                (
+                  lastPlayer() != auth.uid &&
+                  newSequence().beginsWith(oldSequence()) && 
+                  newSequence().length == oldSequence().length + 1
+                ) :
+                newSequence().length == 1 
+            )
+  
