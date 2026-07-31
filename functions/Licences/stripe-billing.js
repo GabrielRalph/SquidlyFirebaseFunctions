@@ -24,14 +24,17 @@ const { licencesRef, isBillerLevel, specialOfferRef } = require("./shared.js");
 const { onCall, onRequest } = require("firebase-functions/https");
 const { webhookHandler, createSubscriptionCheckout, createBillingPortal } = require("./Stripe/billing.js");
 const { emailerPrivateKey } = require("../Emailer/sendEmail.js");
+const { debug } = require("firebase-functions/logger");
 
 function isNonEmptyString(str) {return typeof str === "string" && str.length > 0}
 
-const CREATE_SUBSCRIPTION_VALIDATORS = [
+const STANDARD_VALIDATORS = [
     ({auth}) => {if (!isNonNullObject(auth)) return "User is not authenticated";},
     ({auth}) => {if (!auth.token.email_verified) return "User is not email verified.";},
     ({data}) => {if (!isNonNullObject(data)) return "User did not provide subscription data.";},
-    
+];
+const CREATE_SUBSCRIPTION_VALIDATORS = [
+    ...STANDARD_VALIDATORS,
     async ({auth: {uid}, data: {licenceID}}) => {
         if (isNonEmptyString(licenceID)) {
             let userStatus = (await licencesRef(licenceID, "users", uid, "status").get()).val();
@@ -54,6 +57,7 @@ const CREATE_SUBSCRIPTION_VALIDATORS = [
                 } else if (offer.claimer && offer.claimer !== auth.uid) {
                     return "Special offer has already been claimed by another user."
                 } else {
+                    debug("STRIPE: special offer", offer);
                     data.specialOffer = offer;
                 }
             }
@@ -65,7 +69,7 @@ const CREATE_SUBSCRIPTION_VALIDATORS = [
 ];
 
 const CREATE_PORTAL_VALIDATORS = [
-    ...CREATE_SUBSCRIPTION_VALIDATORS.slice(0, 3),
+    ...STANDARD_VALIDATORS,
     async ({auth: {uid}, data: {licenceID}}) => {
         if (isNonEmptyString(licenceID)) {
             let userStatus = (await licencesRef(licenceID, "users", uid, "status").get()).val();

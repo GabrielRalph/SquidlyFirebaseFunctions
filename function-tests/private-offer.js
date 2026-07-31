@@ -30,7 +30,7 @@ async function make() {
         default: true,
     }]);
     
-    let {errors, client_secret} = await createSpecialOffer({
+    let {errors, token} = await createSpecialOffer({
         productID: product.id, 
         priceIndex, 
         quantity: 1, 
@@ -41,12 +41,11 @@ async function make() {
         console.error("Failed to create special offer:", errors);
         return;
     } else {
-        console.log("\nSuccessfully created special offer for user:", uid);
-        console.log("Checkout link: https://squidly.com.au/Console/#licences-page?clientSecret="+client_secret);
+        console.log("Checkout link: https://squidly.com.au/Console/#licences-page?specialOfferToken="+token);
     }
 }
 
-createSpecialOffer().then(() => {
+make().then(() => {
     console.log("\n\nSuccess.");
 }).catch(err => {
     console.error("\n\nFailed.\n\n", err);

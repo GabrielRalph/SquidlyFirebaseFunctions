@@ -14,7 +14,7 @@
  * @typedef {Object} SubscriptionObject
  * @param {("incomplete"|"incomplete_expired"|"trialing"|"active"|"past_due"|"canceled"|"unpaid"|"paused")} status
  * @param {SubscriptionMetadata} metadata
- * @param {string} id
+ * @param {string} id 
  * @param {{data: StripeItem[]}} items
  * 
  * 
@@ -45,13 +45,21 @@ const DEFAULT_PARAMS = {
 const { refPath, usersRef } = require("../../Shared/shared.js");
 const { createLicence, licencesRef, isBillerLevel, updateLicenceTier, updateLicenceSeats, suspendLicence, specialOfferRef } = require("../shared.js");
 const { Auth } = require('../../firebase.js');
-let { debug } = require("firebase-functions/logger");
+let { debug, warn } = require("firebase-functions/logger");
 const { FirebaseAuthError } = require("firebase-admin/auth");
 
 if (process.env["TEST"]) {
     debug = console.log;
 }
-
+/**
+ * @typedef {import("stripe").Stripe} Stripe
+ * @typedef {import("stripe").Stripe.CustomerSubscriptionCreatedEvent} CustomerSubscriptionCreatedEvent
+ * @typedef {import("stripe").Stripe.CustomerSubscriptionDeletedEvent} CustomerSubscriptionDeletedEvent
+ * @typedef {import("stripe").Stripe.CustomerSubscriptionUpdatedEvent} CustomerSubscriptionUpdatedEvent
+ */
+/**
+ * @return {Stripe} returns a stripe instance using the test or live API key.
+ */
 function getStripe(mode = "TEST") {
     const stripe = require("stripe")(process.env[`STRIPE_API_KEY_${mode}`]);
     return stripe;
@@ -88,14 +96,24 @@ class SubscriptionDetails {
      */
     status = "incomplete";
 
+    /**
+     * @type {string} the stripe subscription ID
+     */
+    subscriptionID = null;
+
     constructor(subscriptionObject) {
         this.object = subscriptionObject;
-        this.item = subscriptionObject.items.data[0];
-        this.seats = this.item.quantity;
+        this.item = subscriptionObject?.items?.data[0];
+        this.seats = this.item?.quantity ?? 0;
         this.status = subscriptionObject.status;
         this.customer = subscriptionObject.customer;
+        this.subscriptionID = subscriptionObject.id;
     }
 
+    /**
+     * Checks if the licence ID in the subscription matches the licence ID in firebase.
+     * @returns {Promise<boolean>} 
+     */
     async checkLicenceExists() {
         const {licenceID, customer, isLicenceIDValid} = this;
         // Ensure if a licence is provided it links to the customer ID
@@ -112,25 +130,36 @@ class SubscriptionDetails {
         return isMatched;
     }
 
-    async updateLicence() {
+    /**
+     * Updates the state of the licence in firebase, 
+     * suspending or unsuspending it depending on the subscription status.
+     * @param {string} id the event id of the stripe webhook event that triggered this update.
+     * @returns {Promise<void>}
+     */
+    async updateLicence(id) {
         const {isLicenceIDValid, licenceMatched, licenceID, tierID, seats, isActive} = this;
         if (isLicenceIDValid && licenceMatched) {
 
             // Suspend or unsuspend the licence depending on the subscription status
-            debug(`STRIPE: ${isActive ? "Unsuspending" : "Suspending"} licence ${licenceID}...`);
+            debug(`STRIPE: (${id}) ${isActive ? "Unsuspending" : "Suspending"} licence ${licenceID}...`);
             await suspendLicence(licenceID, !isActive);
             
             // If the licence is unsuspended then ensure that the
             // licence has the same tier and number of seats as 
             // specified by the subsubscription.
             if (isActive) {
-                debug(`STRIPE: Updating licence ${licenceID} with tier ${tierID} and seats ${seats}.`);
+                debug(`STRIPE:  (${id}) Updating licence ${licenceID} with tier ${tierID} and seats ${seats}.`);
                 await updateLicenceSeats(licenceID, seats);
                 await updateLicenceTier(licenceID, tierID);
             }
         }
     }
 
+    /**
+     * @param {import("stripe").Stripe} stripe the stripe instance to use.
+     * @param {boolean} isTest whether to create a live or test licence.
+     * @returns {Promise<boolean>} creates a new licence in firebase if one does not exist for the subscription.
+     */
     async createLicence(stripe, isTest) {
         // Get creators auth token 
         const authToken = await Auth.getUser(this.creatorUID);
@@ -161,11 +190,16 @@ class SubscriptionDetails {
                 }
             });
             this.licenceMatched = true;
-        } 
+        } else if (await this.checkLicenceExists()) {
+            debug(`STRIPE: licence already exists for customer ${this.customer} with id ${this.licenceID}.`);
+        }
 
         return lid != null;
     }
 
+    /**
+     * @returns {Promise<void>} retrieves the licence name from the stripe checkout session custom fields.
+     */
     async getLicenceName(stripe) {
         let name = "Untitled Organisation"
         try {
@@ -181,17 +215,23 @@ class SubscriptionDetails {
                 }
             }
         } catch (e) {
-            debug("STRIPE: Error retreiving licence name.", e)
+            warn("STRIPE: Error retreiving licence name.", e)
         }
 
         this.licenceName = name;
     }
 
+    /**
+     * @returns {Promise<void>} retrieves the tier ID from the price metadata.
+     */
     async getTier() {
-        let tierID = await refPath("licences-settings", ["price-to-tier", this.item.price.id, "tierID"]).get()
+        let tierID = await refPath("licences-settings", ["price-to-tier", this.item?.price?.id, "tierID"]).get()
         this.tierID = tierID.val() || 0;
     }
 
+    /**
+     * @returns {Promise<void>} retrieves the licence ID and creator UID from the stripe customer metadata.
+     */
     async getCustomerInfo(stripe) {
         let {metadata} = await stripe.customers.retrieve(this.customer);
         let {licenceID, creatorUID} = metadata;
@@ -199,15 +239,17 @@ class SubscriptionDetails {
         this.creatorUID = creatorUID;
     }
 
-    log() {
-        debug(`STRIPE: Subscription Details:\n\tlicenceName: ${this.licenceName}\n\tstatus: ${this.status}\n\ttierID: ${this.tierID}\n\tseats: ${this.seats}\n\tlicenceID: ${this.licenceID}\n\tcreatorUID: ${this.creatorUID}`);
-    }
 
+    /**
+     * @returns {string} a string representation of the subscription details.
+     */
     toString() {
-        return `\tlicenceName: ${this.licenceName}\n\tstatus: ${this.status}\n\ttierID: ${this.tierID}\n\tseats: ${this.seats}\n\tlicenceID: ${this.licenceID}\n\tcreatorUID: ${this.creatorUID}`;
+        return `${this.licenceName}[${this.isActive ? "Active" : "Inactive"}]\n\tstatus: ${this.status}\n\ttierID: ${this.tierID}\n\tseats: ${this.seats}\n\tlicenceID: ${this.licenceID}\n\tcreatorUID: ${this.creatorUID}`;
     }
 
-
+    /**
+     * @returns {boolean} whether the licence ID is valid or not.
+     */
     get isLicenceIDValid() {
         return isNonEmptyString(this.licenceID);
     }
@@ -230,6 +272,10 @@ class SubscriptionDetails {
         "active": true,
     }
 
+    /**
+     * @param {SubscriptionObject} subscriptionObject the stripe subscription object to get details for.
+     * @param {import("stripe").Stripe} stripe the stripe instance to use.
+     */
     static async get(subscriptionObject, stripe) {
         const details = new SubscriptionDetails(subscriptionObject);
         await Promise.all([
@@ -246,6 +292,11 @@ const MAX_USER_SEATS = 10000; // Maximum number of seats a user can purchase in 
 function isNonEmptyString(str) {return typeof str === "string" && str.length > 0}
 function isPositiveInteger(num) {return typeof num === "number" && Number.isInteger(num) && num > 0}
 
+/**
+ * Checks if the user owns a licence.
+ * @param {string} creatorUID the firebase UID of the user to check.
+ * @returns {Promise<boolean>} returns a promise that resolves to true if the user owns a licence, false otherwise.
+ */
 async function ownsLicence(creatorUID) {
     let has = false;
     let licenceKeys = (await usersRef(creatorUID, "licences").get()).val();
@@ -323,7 +374,7 @@ async function validateProductAndPrice(args = {}) {
 async function createSubscriptionCheckout(args={}) {
     args = !args || typeof args !== "object" ? {} : args;
     let {creatorUID, productID, priceIndex, quantity, return_url, licenceID, isTest, isPublic, trialPeriod} = {...DEFAULT_PARAMS, ...args};
-
+    
     let [valid, product, priceID, errors] = await validateProductAndPrice({productID, priceIndex, isTest, isPublic});
     let client_secret = null;
 
@@ -371,19 +422,14 @@ async function createSubscriptionCheckout(args={}) {
     // Creator is either renewing a licence (they own) or creating a new one.
     if (valid) {
         const subscription_data = {};
-
-        // If a trial period is specified then use that
-        if (isPositiveInteger(trialPeriod)) {
-            subscription_data.trial_period_days = trialPeriod;
-
-        // otherwise if the user does not own a licence then give them a 7 day trial.
-        } else if (
-            isPositiveInteger(product.trialPeriod) &&
-            (product.forceTrial || !(await ownsLicence(creatorUID)))
-        ) {
-            subscription_data.trial_period_days = product.trialPeriod;
+        let trialDays = trialPeriod || product.trialPeriod;
+        if (typeof trialDays === "number" && trialDays > 0) {
+            trialDays = Math.ceil(trialDays);
+            if (product.forceTrial || !(await ownsLicence(creatorUID))) {
+                subscription_data.trial_period_days = trialDays;
+            }
         }
-        
+
         // Create a stripe checkout session for the subscription.
         const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
@@ -441,6 +487,10 @@ async function createSpecialOffer(args={}, durationInDays) {
     args = !args || typeof args !== "object" ? {} : args;
     const {productID, priceIndex, isTest, trialPeriod} = {...DEFAULT_PARAMS, ...args};
 
+    if (!isNonEmptyString(productID)) {
+        throw new Error("A product ID is required.");
+    }
+
     durationInDays = isPositiveInteger(durationInDays) ? durationInDays : 1; 
     const  expiry = Date.now() + durationInDays * 24 * 60 * 60 * 1000;
 
@@ -459,34 +509,39 @@ async function createSpecialOffer(args={}, durationInDays) {
         await specialOfferRef(token).set(offer);
     }
 
-    return token;
+    return {token, errors};
 }
 
 /** Called when a subscription event is triggered by stripe webhooks.
- * @param {Subscription} subscription
+ * @param {CustomerSubscriptionCreatedEvent | CustomerSubscriptionDeletedEvent | CustomerSubscriptionUpdatedEvent} event
  * 
  */
-async function onSubscriptionEvent(subscription, isTest) {
+async function onSubscriptionEvent(event, isTest) {
+    const id = event.id;
+    const created = event.created;
+    const subscription = event.data.object;
     const stripe = getStripe(isTest ? "TEST" : "LIVE");
 
     const details = await SubscriptionDetails.get(subscription, stripe);
+    debug(`STRIPE: (${id}) Subscription event received:\n`, details);
 
     // If no licence ID was parsed then create a new licence.
     if (!(await details.checkLicenceExists(stripe))) {
         try {
             if (await details.createLicence(stripe, isTest)) {
                 // await sendLicenceCreationEmail(details.email, details.creatorUID);
-                debug(`STRIPE: Successfully created licence with ID ${details.licenceID} for user with UID: ${details.creatorUID}`);
+                debug(`STRIPE: (${id}) Successfully created licence with ID ${details.licenceID} for user with UID: ${details.creatorUID}`);
             } else {
-                debug(`STRIPE: creation failed likely due to a creation already occuring.`)
+                debug(`STRIPE: (${id}) creation failed likely due to a creation already occuring.`)
             }
         } catch (e) {
-            debug("STRIPE: Error creating licence.", e instanceof FirebaseAuthError ? "Invalid user uid." : e);
+            warn(`STRIPE: (${id}) Error creating licence.`, e instanceof FirebaseAuthError ? "Invalid user uid." : e);
             throw e;
         }
     }
 
-    await details.updateLicence();
+    // Ensure the subscription status is up to date and update the licence accordingly.
+    await details.updateLicence(id);
 }
 
 async function webhookHandler(req, res, isTest) {
@@ -503,25 +558,25 @@ async function webhookHandler(req, res, isTest) {
             SIGNING_SECRET
         );
     } catch (error) {
-        debug("STRIPE: Error parsing webhook.", error)
+        warn("STRIPE: Error parsing webhook.", error)
         return res.sendStatus(400);
     }
 
-    debug(`STRIPE: event:\n\ttype: ${event.type}\n\tobject: ${event.data.object.object}\n\tcustomer: ${event.data.object.customer}\n\n`);
+    debug(`STRIPE: event(${event.id}):\n\tcreated: ${event.created}\n\ttype: ${event.type}\n\tobject: ${event.data.object.object}\n\tcustomer: ${event.data.object.customer}\n\n`);
 
     try {
         switch (event.type) {
             case "customer.subscription.created":
             case "customer.subscription.updated":
             case "customer.subscription.deleted":
-                await onSubscriptionEvent(event.data.object, isTest);
+                await onSubscriptionEvent(event, isTest);
                 break;
             default:
                 break;
         }
         return res.sendStatus(200);
     } catch (e) {
-        debug("STRIPE: Error processing webhook event.", e);
+        warn(`STRIPE: (${event.id}) Error processing webhook event.`, e);
         return res.sendStatus(500);
     }
 }
@@ -536,7 +591,6 @@ async function createBillingPortal(licenceID, return_url) {
 
 
 module.exports = {
-    createSpecialOffer,
     webhookHandler,
     createSubscriptionCheckout,
     createSpecialOffer,

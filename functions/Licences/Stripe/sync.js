@@ -19,7 +19,7 @@ function formatPrice({lookup_key, unit_amount, id, currency, recurring, nickname
     };
 }
 
-function formatProduct({prices, id, name, unit_label, marketing_features, metadata: { attributes, userGuide, tierID, public, keyName, trialPeriod}, description}) {
+function formatProduct({prices, id, name, unit_label, marketing_features, metadata: { attributes, userGuide, tierID, public, keyName, trialPeriod, forceTrial}, description}) {
     prices = prices.map(formatPrice);
     prices.sort((a, b) => a.amount - b.amount);
     tierID = typeof tierID === "string" ? parseInt(tierID) : 0;

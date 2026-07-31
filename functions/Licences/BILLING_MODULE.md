@@ -240,6 +240,11 @@ If this sync is stale or missing, product validation or tier resolution can fail
    - Special-offer validator now reads auth from validator context and checks against auth.uid.
    - Location: [functions/Licences/stripe-billing.js](./stripe-billing.js#L44)
 
+15. Concurrent subscription-event create race now reconciles before update.
+   - When createLicence returns false (typically because a concurrent event already created the licence), onSubscriptionEvent now re-checks licence existence before calling updateLicence.
+   - This prevents the second event from becoming a no-op due to stale licenceMatched=false.
+   - Location: [functions/Licences/Stripe/billing.js](./Stripe/billing.js#L488)
+
 ### Open gotchas (still present)
 
 1. Renewal path silently falls back to creating a new customer when customerID is missing.
