@@ -1,6 +1,5 @@
 const {db, Auth} = require('../functions/firebase.js');
 const inquirer =  require('inquirer');
-const { createSubscriptionCheckout } = require('../functions/Licences/Stripe/billing');
 const { createLicence, suspendLicence } = require('../functions/Licences/shared.js');
 
 async function createSpecialOffer() {

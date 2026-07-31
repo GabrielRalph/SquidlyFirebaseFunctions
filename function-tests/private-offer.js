@@ -2,6 +2,7 @@ const {db, Auth} = require('../functions/firebase.js');
 const inquirer =  require('inquirer');
 const { syncStripeProducts } = require('../functions/Licences/Stripe/sync.js');
 const { createSubscriptionCheckout } = require('../functions/Licences/Stripe/billing');
+
 async function createSpecialOffer() {
     await syncStripeProducts();
 
@@ -20,7 +21,7 @@ async function createSpecialOffer() {
         choices: prices
     }])
 
-    const [product, priceIdx] = res.product;
+    const [product, priceIndex] = res.product;
 
     let uid = null
     try {
@@ -52,7 +53,15 @@ async function createSpecialOffer() {
     }]);
 
     if (uid) {
-        let {errors, client_secret} = await createSubscriptionCheckout(uid, product.id, priceIdx, 1, "https://squidly.com.au/Console", null, res.isTest, false)
+        let {errors, client_secret} = await createSubscriptionCheckout({
+            creatorUID: uid, 
+            productID: product.id, 
+            priceIndex, 
+            quantity: 1, 
+            return_url: "https://squidly.com.au/Console", 
+            isTest: res.isTest,
+            isPublic: false
+        });
         if (errors.length > 0) {
             console.error("Failed to create special offer:", errors);
             return;
