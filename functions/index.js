@@ -25,3 +25,6 @@ exports.emailer = require("./Emailer/emailer.js");
 
 /* OTP */
 exports.otp = require("./OTP/otp.js");
+
+/* OBBoards */
+exports.OBBoards = require("./OBBoards/ob-boards.js");

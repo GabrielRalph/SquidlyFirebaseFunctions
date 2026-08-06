@@ -34,7 +34,7 @@ const {onCall} = require("firebase-functions/v2/https");
 const { FieldValue } = require('firebase-admin/firestore');
 
 const { getUsersMaxTier } = require("../Licences/shared.js");
-const { phashHex, img2png } = require("./shared.js");
+const { phashHex, img2png, img2rgb } = require("./shared.js");
 
 const TEST_MODE = false;
 
@@ -250,6 +250,7 @@ async function uploadSymbol(data, auth){
             try {
                 end = startTimer();
                 pngBuffer = await img2png(dataBuffer)
+                pngBuffer = await img2rgb(pngBuffer)
                 pngBase64 = pngBuffer.toString('base64');
                 debug(`GRID-SYMBOLS: Upload Symbol [${end()}ms]: ${name} converted to png.`)
             } catch (e) {
@@ -313,6 +314,7 @@ async function uploadSymbol(data, auth){
                 // try 3 times if an error occurs
                 end = startTimer();
                 const hexHash = await phashHex(pngBuffer);
+                let name = data.name.trim().toUpperCase().replace(/\s+/g, "_");
                 await attempt(3, async () => {
                     symbolRef = await SymbolsRef.add({
                         name: name,
@@ -321,6 +323,7 @@ async function uploadSymbol(data, auth){
                         public: !!public,
                         phash: hexHash,
                         iconSetPath: null,
+                        title: data.name,
                     })
                     symbolID = symbolRef.id;
                 })

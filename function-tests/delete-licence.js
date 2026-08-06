@@ -1,6 +1,7 @@
 const { suspendLicence, deleteLicence } = require("../functions/Licences/shared");
 const inquirer =  require('inquirer');
 const { refPath } = require("../functions/Shared/shared");
+const { removeSubscriptionAndLicence } = require("../functions/Licences/Stripe/billing");
 
 async function del() {
     let licences = (await refPath("/licences", []).get()).val() || {};
@@ -25,7 +26,8 @@ async function del() {
     }]);
     
     if (confirm) {
-        await deleteLicence(lid, false)
+        
+        await removeSubscriptionAndLicence(lid);
     }
 }
 

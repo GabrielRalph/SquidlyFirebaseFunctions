@@ -28,7 +28,22 @@
  * @property {boolean} isTest whether to use the test or live stripe API.
  * @property {boolean} isPublic whether this is a public call.
  * @property {number} [trialPeriod] the number of days to apply a trial period for.
+ * 
+ * 
+ * @typedef {import("stripe").Stripe} Stripe
+ * @typedef {import("stripe").Stripe.CustomerSubscriptionCreatedEvent} CustomerSubscriptionCreatedEvent
+ * @typedef {import("stripe").Stripe.CustomerSubscriptionDeletedEvent} CustomerSubscriptionDeletedEvent
+ * @typedef {import("stripe").Stripe.CustomerSubscriptionUpdatedEvent} CustomerSubscriptionUpdatedEvent
  */
+
+
+const { refPath, usersRef } = require("../../Shared/shared.js");
+const { createLicence, licencesRef, isBillerLevel, updateLicenceTier, updateLicenceSeats, suspendLicence, specialOfferRef, deleteLicence } = require("../shared.js");
+const { Auth } = require('../../firebase.js');
+const { RTDBLock } = require("../../rtdb-lock.js");
+let { debug, warn } = require("firebase-functions/logger");
+const { FirebaseAuthError } = require("firebase-admin/auth");
+
 
 const DEFAULT_PARAMS = {
     creatorUID: "",
@@ -41,22 +56,12 @@ const DEFAULT_PARAMS = {
     isPublic: false,
     trialPeriod: null,
 }
-
-const { refPath, usersRef } = require("../../Shared/shared.js");
-const { createLicence, licencesRef, isBillerLevel, updateLicenceTier, updateLicenceSeats, suspendLicence, specialOfferRef } = require("../shared.js");
-const { Auth } = require('../../firebase.js');
-let { debug, warn } = require("firebase-functions/logger");
-const { FirebaseAuthError } = require("firebase-admin/auth");
+const LOCK_TIMEOUT = 60000; // 60 seconds
 
 if (process.env["TEST"]) {
     debug = console.log;
 }
-/**
- * @typedef {import("stripe").Stripe} Stripe
- * @typedef {import("stripe").Stripe.CustomerSubscriptionCreatedEvent} CustomerSubscriptionCreatedEvent
- * @typedef {import("stripe").Stripe.CustomerSubscriptionDeletedEvent} CustomerSubscriptionDeletedEvent
- * @typedef {import("stripe").Stripe.CustomerSubscriptionUpdatedEvent} CustomerSubscriptionUpdatedEvent
- */
+
 /**
  * @return {Stripe} returns a stripe instance using the test or live API key.
  */
@@ -155,6 +160,8 @@ class SubscriptionDetails {
         }
     }
 
+
+
     /**
      * @param {import("stripe").Stripe} stripe the stripe instance to use.
      * @param {boolean} isTest whether to create a live or test licence.
@@ -237,6 +244,20 @@ class SubscriptionDetails {
         let {licenceID, creatorUID} = metadata;
         this.licenceID = licenceID;
         this.creatorUID = creatorUID;
+    }
+
+
+    /**
+     * Updates the subscription details from stripe.
+     * @param {import("stripe").Stripe} stripe the stripe instance to use.
+     */
+    async refresh(stripe) {
+        const subscription = await stripe.subscriptions.retrieve(this.subscriptionID);
+        this.object = subscription;
+        this.item = subscription?.items?.data[0];
+        this.seats = this.item?.quantity ?? 0;
+        this.status = subscription.status;
+        await this.getTier();
     }
 
 
@@ -506,6 +527,7 @@ async function createSpecialOffer(args={}, durationInDays) {
             trialPeriod: isPositiveInteger(trialPeriod) ? trialPeriod : null,
         }
         token = specialOfferRef().push().key;
+        token = "SPO" + token + Math.random().toString(36).substring(2, 8).toUpperCase() + (isTest ? "T" : "L");
         await specialOfferRef(token).set(offer);
     }
 
@@ -518,30 +540,43 @@ async function createSpecialOffer(args={}, durationInDays) {
  */
 async function onSubscriptionEvent(event, isTest) {
     const id = event.id;
-    const created = event.created;
     const subscription = event.data.object;
-    const stripe = getStripe(isTest ? "TEST" : "LIVE");
+    const mode = isTest ? "TEST" : "LIVE";
+    const stripe = getStripe(mode);
 
+    const lock = new RTDBLock(
+        "stripe-subscriptions/" + subscription.id + mode, {
+            acquireTimeoutMs: LOCK_TIMEOUT, 
+            leaseMs: LOCK_TIMEOUT
+    });
+    lock.id = id.slice(-5)
+    
     const details = await SubscriptionDetails.get(subscription, stripe);
     debug(`STRIPE: (${id}) Subscription event received:\n`, details);
-
+    
     // If no licence ID was parsed then create a new licence.
-    if (!(await details.checkLicenceExists(stripe))) {
-        try {
-            if (await details.createLicence(stripe, isTest)) {
-                // await sendLicenceCreationEmail(details.email, details.creatorUID);
-                debug(`STRIPE: (${id}) Successfully created licence with ID ${details.licenceID} for user with UID: ${details.creatorUID}`);
-            } else {
-                debug(`STRIPE: (${id}) creation failed likely due to a creation already occuring.`)
-            }
-        } catch (e) {
-            warn(`STRIPE: (${id}) Error creating licence.`, e instanceof FirebaseAuthError ? "Invalid user uid." : e);
-            throw e;
-        }
-    }
+    await lock.acquire();
 
-    // Ensure the subscription status is up to date and update the licence accordingly.
-    await details.updateLicence(id);
+    try {
+        if (!(await details.checkLicenceExists())) {
+            try {
+                if (await details.createLicence(stripe, isTest)) {
+                    // await sendLicenceCreationEmail(details.email, details.creatorUID);
+                    debug(`STRIPE: (${id}) Successfully created licence with ID ${details.licenceID} for user with UID: ${details.creatorUID}`);
+                } else {
+                    debug(`STRIPE: (${id}) creation failed likely due to a creation already occuring.`)
+                }
+            } catch (e) {
+                warn(`STRIPE: (${id}) Error creating licence.`, e instanceof FirebaseAuthError ? "Invalid user uid." : e);
+                throw e;
+            }
+        }
+        // Ensure the subscription state is up to date and update the licence accordingly.
+        await details.refresh(stripe);
+        await details.updateLicence(id);
+    } finally {
+        await lock.release();
+    }
 }
 
 async function webhookHandler(req, res, isTest) {
@@ -590,11 +625,24 @@ async function createBillingPortal(licenceID, return_url) {
 }
 
 
+async function removeSubscriptionAndLicence(licenceID) {
+    let isTest = (await licencesRef(licenceID, "isTest").get()).val();
+    let customer = (await licencesRef(licenceID, "customerID").get()).val();
+    const stripe = getStripe(isTest ? "TEST" : "LIVE");
+    if (isNonEmptyString(customer)) {
+       const deleted = await stripe.customers.del(customer);
+    }
+
+    await deleteLicence(licenceID);
+}
+
+
 module.exports = {
     webhookHandler,
     createSubscriptionCheckout,
     createSpecialOffer,
     createBillingPortal,
     onSubscriptionEvent,
-    ownsLicence
+    ownsLicence,
+    removeSubscriptionAndLicence,
 }

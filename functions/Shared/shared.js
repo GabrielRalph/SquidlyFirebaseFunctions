@@ -1,16 +1,18 @@
 const { db } = require("../firebase.js");
 
 /**
- * @template {any} T
- * 
  * Validators validate the data provided. If nothing is returned 
  * the data is regarded valid otherwise if a string (or anything) 
  * is returned the data is considered not valid, with the string
  * describing the reason why. 
- * @typedef {(T) => Promise<(void|string)>} Validator
- * 
+ * @template {any} T
+ * @typedef {(data: T) => Promise<(void|string)} Validator
+ */
+
+/**
+ * @template {any} T
  * @param {T} data to validate.
- * @param {Array<Validator>} validators list of validators.
+ * @param {Validator<T>[]} validators list of validators.
  * @param {string[]} errors that where experieced.
  *               
  */

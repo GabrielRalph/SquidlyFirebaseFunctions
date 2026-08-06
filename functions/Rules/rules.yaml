@@ -359,8 +359,8 @@ grid-topics:
   .indexOn: [public, owner, name]
   .read:  auth != null && (
           ( 
-            (isPaidUser() || isTempUser()) &&  isPublic() ) ||
-            searchByOwnerOrTemp()
+            (isPaidUser() || isTempUser()) &&  publicSearch() )
+            || searchByOwnerOrTemp()
           )
   $topicUID: 
       .write: |

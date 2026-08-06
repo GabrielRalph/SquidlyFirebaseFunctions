@@ -454,7 +454,7 @@
         "owner",
         "name"
       ],
-      ".read": "auth != null && ( ( ((( root.child('users').child(auth.uid).child('max-tier').exists() && root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists() )) || (root.child('temp-users/' + auth.uid).exists())) &&  (data.child('public').val() == true) ) || (query.orderByChild == 'owner' &&  ( query.equalTo == auth.uid || root.child('temp-users/'+auth.uid).child(query.equalTo).exists() )) )",
+      ".read": "auth != null && ( ( ((( root.child('users').child(auth.uid).child('max-tier').exists() && root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists() )) || (root.child('temp-users/' + auth.uid).exists())) &&  (query.orderByChild == 'public' && query.equalTo == true) ) || (query.orderByChild == 'owner' &&  ( query.equalTo == auth.uid || root.child('temp-users/'+auth.uid).child(query.equalTo).exists() )) )",
       "$topicUID": {
         ".write": "auth != null &&  (( root.child('users').child(auth.uid).child('max-tier').exists() && root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists() )) && (newData.exists() ? newData.hasChildren(['owner', 'name', 'public', 'size', 'items']) : true) &&  (data.exists() ? (data.child('owner').val() == auth.uid) : true)",
         ".read": "auth != null && ( ( ((( root.child('users').child(auth.uid).child('max-tier').exists() && root.child('licences-settings/tier-usage').child(root.child('users').child(auth.uid).child('max-tier').val() + '').exists() )) || (root.child('temp-users/' + auth.uid).exists())) && (data.child('public').val() == true) ) || (data.child('owner').val() == auth.uid) || (root.child('temp-users/'+auth.uid).child(data.child('owner').val()).exists()) )",
@@ -514,7 +514,7 @@
     },
     "connect-four": {
       "$gameID": {
-        ".write": "auth != null &&  newData.hasChildren(['sequence', 'lastPlayer']) && (newData.child('lastPlayer')).isString() && (newData.child('lastPlayer').val()) == auth.uid && (newData.child('sequence')).isString() && (newData.child('sequence').val()).match(/^[0-6]+$/) && (!(newData.child('sequence').val()).matches(/(0[^0]*{7})|(1[^1]*{7})|(2[^2]*{7})|(3[^3]*{7})|(4[^4]*{7})|(5[^5]*{7})|(6[^6]*{7})/)) && (   data.exists() ?      (       (data.child('lastPlayer').val()) != auth.uid &&       (newData.child('sequence').val()).startsWith((data.child('sequence').val())) &&        (newData.child('sequence').val()).length == (data.child('sequence').val()).length + 1     ) :     (newData.child('sequence').val()).length == 1  )"
+        ".write": "auth != null &&  newData.hasChildren(['sequence', 'lastPlayer']) && newData.child('lastPlayer').isString() && newData.child('lastPlayer').val() == auth.uid && newData.child('sequence').isString() && data.child('sequence').val().matches(/^[0-6]+$/) && (!data.child('sequence').val().matches(/((0[^0]*){7})|((1[^1]*){7})|((2[^2]*){7})|((3[^3]*){7})|((4[^4]*){7})|((5[^5]*){7})|((6[^6]*){7})/)) && (   data.exists() ?      (       (data.child('lastPlayer').val()) != auth.uid &&       (newData.child('sequence').val()).beginsWith((data.child('sequence').val())) &&        (newData.child('sequence').val()).length == (data.child('sequence').val()).length + 1     ) :     (newData.child('sequence').val()).length == 1  )"
       }
     }
   }

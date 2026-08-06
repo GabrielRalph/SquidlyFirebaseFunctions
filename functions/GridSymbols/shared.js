@@ -41,11 +41,11 @@ async function img2png(dataBuffer) {
     .resize(EMBEDDING_IMAGE_SIZE)
     .png()
     .toBuffer();
-
     return imgbuff;
 }
 
-async function getPhashReadyBuffer(imageBuffer) {
+
+async function img2rgb(imageBuffer) {
     const backgrounds = [
         { r: 255, g: 255, b: 255 },
         { r: 0, g: 0, b: 0 },
@@ -69,9 +69,8 @@ async function getPhashReadyBuffer(imageBuffer) {
     return best ? best.buffer : imageBuffer;
 }
 
-async function phashHex(imageBuffer) {
-    const phashReadyBuffer = await getPhashReadyBuffer(imageBuffer);
-    const hash = await phash(phashReadyBuffer);
+async function phashHex(rgb) {
+    const hash = await phash(rgb);
     let hex = "";
     for (let i = 0; i < hash.length; i += 4) {
         const chunk = hash.slice(i, i + 4);
@@ -89,6 +88,7 @@ async function getType(imageData) {
 
 module.exports = {
     img2png,
+    img2rgb,
     phashHex,
     getType,
     MIMETYPE_KEY,
