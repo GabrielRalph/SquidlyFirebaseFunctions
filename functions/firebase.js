@@ -68,4 +68,54 @@ async function getUserName(uid) {
 }
 
 
-module.exports = {admin, db, Auth, Storage, sb, fstore, getUserName, getUserData, setUserData, updateUserData, getUserLicence, FieldValue};
+class FileStatus {
+    /** @type {import("firebase-admin/database").ThenableReference} */
+    ref = null;
+
+    /** @type {Promise} */
+    lastProm = null;
+
+    constructor(uid, uploadID, initialState = {
+        progress: 0,
+        status: 0,
+        message: "Starting upload",
+    }){
+        if (uploadID) {
+            try {
+                this.ref = db.ref(`file-status/${uid}/${uploadID}`).push();
+                this.lastProm = this.ref.set(initialState)
+            } catch (err) {
+                warn("FileStatus: FileStatus: Error initializing file status:", err);
+            }
+        }
+    }
+
+    async update(update = {}) {
+        if (!this.ref) {
+            let log = "State update:"
+            for (const [key, value] of Object.entries(update)) {
+                log += `  ${key}: ${value}\n`;
+            }
+            console.log(log);
+        } else {
+            try {
+                await this.lastProm;
+                this.lastProm = this.ref.update(update)
+            } catch (err) {
+                warn("FileStatus: Error updating file status:", err);
+            }
+        }
+    }
+
+    async clear(){
+        if (!this.ref) return;
+        try {
+            await this.lastProm;
+            await this.ref.remove();
+        } catch (err) {
+            warn("FileStatus: Error clearing file status:", err);
+        }
+    }
+}
+
+module.exports = {admin, FileStatus, db, Auth, Storage, sb, fstore, getUserName, getUserData, setUserData, updateUserData, getUserLicence, FieldValue};
