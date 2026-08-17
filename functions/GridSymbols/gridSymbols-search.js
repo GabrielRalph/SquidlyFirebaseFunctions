@@ -192,7 +192,8 @@ async function searchSymbols(data, auth) {
 
 module.exports = {
     search: onCall({
-        region: "australia-southeast1"
+        region: "australia-southeast1",
+        memory: "512MiB",
     },async ({auth, data}) => {
         return await searchSymbols(data, auth);
     }),

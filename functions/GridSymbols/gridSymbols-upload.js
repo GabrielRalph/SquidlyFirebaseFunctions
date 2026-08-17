@@ -34,7 +34,7 @@ const {onCall} = require("firebase-functions/v2/https");
 const { FieldValue } = require('firebase-admin/firestore');
 
 const { getUsersMaxTier } = require("../Licences/shared.js");
-const { phashHex, img2png, img2rgb } = require("./shared.js");
+const { phashHex, img2png, img2rgb, MIMETYPE_KEY } = require("./shared.js");
 
 const TEST_MODE = false;
 
@@ -91,9 +91,9 @@ function validateRequestData(data) {
         if (typeof dataBuffer !== "string") {
             errors.push("dataBuffer must be encoded as string.");
             valid = false;
-        } else if (dataBuffer.length > MAX_FILE_SIZE) {
-            errors.push(`File size must be less ${MAX_FILE_SIZE}.`);
-            valid = false;
+        // } else if (dataBuffer.length > MAX_FILE_SIZE) {
+        //     errors.push(`File size must be less ${MAX_FILE_SIZE}.`);
+        //     valid = false;
         } else {
             try {
                 data.dataBuffer = Buffer.from(dataBuffer, 'base64');
@@ -249,8 +249,11 @@ async function uploadSymbol(data, auth){
         if (valid) {
             try {
                 end = startTimer();
-                pngBuffer = await img2png(dataBuffer)
-                pngBuffer = await img2rgb(pngBuffer)
+                pngBuffer = await img2png(dataBuffer);
+                if (dataBuffer.length > MAX_FILE_SIZE) {
+                    dataBuffer = pngBuffer;
+                }
+                pngBuffer = await img2rgb(pngBuffer);
                 pngBase64 = pngBuffer.toString('base64');
                 debug(`GRID-SYMBOLS: Upload Symbol [${end()}ms]: ${name} converted to png.`)
             } catch (e) {
@@ -410,7 +413,8 @@ module.exports = {
     img2png,
     phashHex,
     upload: onCall({
-        region: "australia-southeast1"
+        region: "australia-southeast1",
+        memory: "512MiB",
     },async ({auth, data}) => {
         return await uploadSymbol(data, auth);
     }),

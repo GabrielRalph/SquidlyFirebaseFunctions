@@ -33,6 +33,7 @@ function docs2iconInfo(docs, uid, isVec = false) {
             url: doc.get("url"),
             type: doc.get("type"),
             id: doc.id,
+            public: doc.get("public"),
             phash: doc.get("phash"),
             owned: uid === doc.get("uid"),
             match: isVec ? doc.get("vector_distance") : 0
