@@ -58,13 +58,17 @@ function findFirstDifference(obj1, obj2, path = "") {
 
 class DataClass {
     /**
-     * Creates an instance of the class and populates its properties based on the provided arguments object.
-    * @template {DataClass} T
-    * @this {new() => T}
-    * @param {Object} argsObject
+    * Creates an instance of the class and populates its properties based on the provided arguments object.
+    * @template T
+    * @this {new () => T}
+    * @param {Partial<T>} argsObject
     * @returns {T}
     */
     static make(argsObject) {
+        if (argsObject === null || typeof argsObject !== "object") {
+            throw new Error(`${this.name}: make requires an object as an argument but received ${argsObject}`);
+        }
+
         const instance = new this();
         for (const key in instance) {
             if (!(instance[key] instanceof Function)) {
@@ -93,7 +97,7 @@ class DataClass {
     * @template {DataClass} T
     * @this {new() => T}
     * @param {string} url - The URL to load the data from, which should return a JSON object.
-    * @param {function(number):void} onprogress - An optional callback function that receives progress updates as a number between 0 and 1.
+    * @param {(n: number) => void} onprogress - An optional callback function that receives progress updates as a number between 0 and 1.
     * @returns {Promise<T>}
     */
     static async load(url, onprogress) {
@@ -101,16 +105,23 @@ class DataClass {
         return this.make(data);
     }
 
+    /**
+     * A JSON representation of the instance, including only 
+     * properties that differ from the default values.
+     * @return {Partial<this>} A JSON representation of the instance.
+     */
     toJSON() {
         let json = {}
         let blank = new this.constructor();
+        let includedDefaults = new Set(this.constructor.includedDefaultProperties);
+        
         for (let key in this) {
             let value = this[key];
             let dValue = blank[key];
             if (!(value instanceof Function)) {
                 if (value instanceof DataClass) {
                     json[key] = value.toJSON();
-                } else if (dValue === undefined || !deepCompare(value, dValue)) {
+                } else if (includedDefaults.has(key) || dValue === undefined || !deepCompare(value, dValue)) {
                     json[key] = value;
                 }
             }
@@ -125,6 +136,10 @@ class DataClass {
     diff(other) {
         return findFirstDifference(this, other);
     }
+
+    static get includedDefaultProperties() {
+        return [];
+    }
 }
 
 
@@ -133,7 +148,6 @@ class DataClass {
                                        OPEN BOARD MODULE
  ***********************************************************************************************
  ***********************************************************************************************/
-
 
 class OpenBoardObject extends DataClass {
     /** @type {string} */
@@ -159,6 +173,7 @@ class OBLoadBoard extends OpenBoardObject {
     /** @type {?string} */
     path = null;        
 }
+
 
 
 class OBSymbol extends DataClass {
@@ -235,12 +250,10 @@ class OBImage extends OpenBoardObject {
     }
 }
 
-/**
- * This class represents an action associated with a button.
- */
 
 /**
  * This class represents an action associated with a button.
+ * 
  */
 class OBAction {
     constructor(value) {
@@ -381,6 +394,13 @@ class OBButton extends OpenBoardObject {
      * in format see background_color.
      * @type {?string} */
     text_color = null;  
+
+
+     /** 
+     * Feature color of the button, 
+     * in format see background_color.
+     * @type {?string} */
+    feature_color = null;  
     
     /** 
      * The vocalization associated with the button,
@@ -564,6 +584,7 @@ class OBGrid extends DataClass {
 
 }
 
+
 class OBBoard extends OpenBoardObject {
     /** 
      * The grid layout of the board.
@@ -658,7 +679,7 @@ class OBBoard extends OpenBoardObject {
      * This method will return unique positions and 
      * their corresponding button IDs.
      *
-     * @param {stirng[]} buttonIDs - An optional array of button IDs to filter the locations.
+     * @param {string[]} buttonIDs - An optional array of button IDs to filter the locations.
      * @returns {LocationInfo[]}
      */
     getButtonLocations(ids) {
@@ -744,7 +765,7 @@ class OBBoard extends OpenBoardObject {
      * @param {number} rows
      * @param {number} columns
      * @param {string} id - Optional ID for the new board. If not provided, a new ID will be generated.
-     * @returns {OBBoardEditable}
+     * @returns {OBBoard}
      */
     static makeEmptyBoard(rows, columns, id = OBButton.newID()) {
         const buttons = new Array(rows * columns).fill(0).map(() => OBButton.makeEmptyButton());
@@ -769,6 +790,7 @@ class OBBoard extends OpenBoardObject {
 
 
 module.exports = {
+    DataClass,
     OBAction,
     OBButton,
     OBGrid,
