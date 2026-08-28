@@ -11,26 +11,27 @@ const {
 
 const UPDATE_BOARD_VALIDATORS = [
     isAuthenticated,
-    ({data}) => {
-        if  (!isNonNullObject(data)) {
-             return "No data provided." 
-        } else {
-            data.status = new FileStatus(data.auth.uid, data.boardID, {
-                step: 0,
-            })
-        }
+    ({data}) => { if (!isNonNullObject(data)) {return "No data provided."; } },
+    ({data: {boardID}}) => {if (!boardID || typeof boardID !== "string" || boardID.length === 0) { return "No board ID provided." }},
+
+    ({data, auth: {uid}}) => {
+        data.status = new FileStatus(uid, data.boardID, {
+            step: 0,
+        })
     },
     
-    ({data: {boardID}}) => {if (!boardID || typeof boardID !== "string") { return "No board ID provided." }},
     async ({data, auth: {uid}}) => {
         const [owner, metadata] = await isOwner(uid, data.boardID);
         data.metadata = metadata;
-        if (!owner) {
+        if (metadata === null) {
+            return "No board metadata found.";
+        } else if (!owner) {
             return "User does not have permission to update this board.";
         } else {
             await data.status.update({step: 2})
         }
     },
+    
     async ({data}) => {
         const draft = fstore.collection(DRAFT_COLLECTION).doc(data.boardID);
         const draftDoc = await draft.get();
@@ -64,13 +65,16 @@ const UPDATE_BOARD_VALIDATORS = [
         }
     },
 
-    async ({data: {boardID}}) => {
+    /**
+     * @param {{data: {boardID: string, status: FileStatus}}} - The data object containing boardID and status.
+     */
+    async ({data: {boardID, status}}) => {
         try {
             await status.update({step: 5})
             await fstore.collection(BOARD_COLLECTION).doc(boardID).update({
                 updatedAt: FieldValue.serverTimestamp()
             });
-            await fstore.collection(DRAFT_COLLECTION).doc(boardID).delete();
+            await status.clear();
         } catch (e) {
             return "Failed to update board metadata in Firestore: " + e.message;
         }
@@ -79,6 +83,7 @@ const UPDATE_BOARD_VALIDATORS = [
 
 module.exports = {
     steps: UPDATE_BOARD_VALIDATORS,
+
     update: onCall({
         region: "australia-southeast1"
     }, async (res) => {

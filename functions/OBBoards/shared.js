@@ -23,7 +23,7 @@ async function isSquidlyAdmin(uid) {
 }
 
 async function isAuthenticated({auth}) {
-    if (!isNonNullObject(auth) || auth.uid === undefined || auth.uid === null || auth.uid === "") {
+    if (!isNonNullObject(auth) || typeof auth.uid !== "string" || auth.uid.length === 0) {
         return "User not authenticated";
     }
 }
