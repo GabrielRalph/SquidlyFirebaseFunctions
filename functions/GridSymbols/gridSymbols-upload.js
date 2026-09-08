@@ -252,6 +252,7 @@ async function uploadSymbol(data, auth){
                 pngBuffer = await img2png(dataBuffer);
                 if (dataBuffer.length > MAX_FILE_SIZE) {
                     dataBuffer = pngBuffer;
+                    type = "image/png";
                 }
                 pngBuffer = await img2rgb(pngBuffer);
                 pngBase64 = pngBuffer.toString('base64');
