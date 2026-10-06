@@ -2,6 +2,7 @@ const { getDatabase } = require("firebase-admin/database");
 const { getStorage } = require("firebase-admin/storage");
 const { getFirestore, FieldValue } = require('firebase-admin/firestore');
 const { getAuth } = require("firebase-admin/auth");
+const { getDownloadURL } = require("firebase-admin/storage");
 const admin = require("firebase-admin");
 
 if (process.env.TEST === "true") {
@@ -82,7 +83,7 @@ class FileStatus {
     }){
         if (uploadID) {
             try {
-                this.ref = db.ref(`file-status/${uid}/${uploadID}`).push();
+                this.ref = db.ref(`file-status/${uid}/${uploadID}`);
                 this.lastProm = this.ref.set(initialState)
             } catch (err) {
                 warn("FileStatus: FileStatus: Error initializing file status:", err);
@@ -118,4 +119,19 @@ class FileStatus {
     }
 }
 
-module.exports = {admin, FileStatus, db, Auth, Storage, sb, fstore, getUserName, getUserData, setUserData, updateUserData, getUserLicence, FieldValue};
+module.exports = {
+    getDownloadURL,
+    admin,
+    FileStatus,
+    db,
+    Auth,
+    Storage,
+    sb,
+    fstore,
+    getUserName,
+    getUserData,
+    setUserData,
+    updateUserData,
+    getUserLicence,
+    FieldValue
+};

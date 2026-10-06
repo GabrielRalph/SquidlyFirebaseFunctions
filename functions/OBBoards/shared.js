@@ -70,6 +70,7 @@ async function uploadBoardToStorage(boardID, encoded) {
 }
 
 
+
 const PATH_SEPERATOR = "\\"
 
 class Path {
@@ -317,6 +318,33 @@ async function deleteBoardPermanently(boardID) {
     }
 }
 
+
+async function copyBoardSet(boardID) {
+    const boardsRef = fstore.collection(BOARD_COLLECTION);
+    // get all boards associated with the given boardID 
+    const metaDoc = await boardsRef.doc(boardID).get()
+
+    if (!metaDoc.exists) {
+        const metadata = OBFileMetadata.make(metaDoc.data());
+
+        const path = metadata.path;
+
+        const snap = await boardsRef
+            .where("owner", "==", user)  
+            .where("path", ">", rootPath)
+            .where("path", "<=", rootPath + "\uf8ff")
+            .get();
+
+        
+        const allFiles = Object.fromEntries(
+            snap.docs.map(doc => [doc.id, OBFileMetadata.make(doc.data())])
+        );
+
+
+    }
+}
+
+
 module.exports = {
     encodeBoard,
     isSquidlyAdmin,
@@ -330,5 +358,6 @@ module.exports = {
     Path,
     uploadBoardSetToStorage,
     deleteBoardPermanently,
-    OBFileMetadata
+    OBFileMetadata,
+    fflate
 };

@@ -28,3 +28,7 @@ exports.otp = require("./OTP/otp.js");
 
 /* OBBoards */
 exports.OBBoards = require("./OBBoards/ob-boards.js");
+
+
+/* Symbols */
+exports.symbols = require("./Symbols/symbols.js");

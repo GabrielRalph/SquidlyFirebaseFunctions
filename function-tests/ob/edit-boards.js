@@ -1,7 +1,6 @@
 const { fstore, sb } = require("../../functions/firebase");
 const { OBBoard, OBAction } = require("../../functions/OBBoards/openboard");
 const { BOARD_COLLECTION, OBFileMetadata, uploadBoardSetToStorage } = require("../../functions/OBBoards/shared");
-
 async function getBoards(user, rootPath, download) {
     const boardsRef = fstore.collection(BOARD_COLLECTION);
     const snap = await boardsRef
@@ -51,14 +50,17 @@ async function updateBoards(user, rootPath, updateMethod) {
 
 
 updateBoards(
-    "s6NoggwP78XlE7LtWnu5Q38VbF32", 
-    "Default", 
+    "b74L3X6ChOPe5lmbGMpg9jVfRrb2", 
+    "Proloquo\\Proloquo CWB", 
     /** @param {OBBoard} board
      *  @param {OBFileMetadata} meta
      *  @param {string} key
      */
     async (board, meta, key) => {
         meta.owner = "squidly"
+        let path = meta.path.split("\\");
+        path.slice(1);
+        meta.path = path.join("\\");
         return true;
     }
 ).then(() => {

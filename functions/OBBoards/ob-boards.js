@@ -1,10 +1,9 @@
 const { fstore, FieldValue, FileStatus } = require("../firebase.js");
 const { onCall } = require("firebase-functions/https");
 const { validateData, isNonNullObject } = require("../Shared/shared.js");
-const { debug } = require("firebase-functions/logger");
 const { 
     BOARD_COLLECTION, DRAFT_COLLECTION, 
-    encodeBoard, isSquidlyAdmin, isAuthenticated, 
+    isAuthenticated, 
     parseBoardObject, isOwner, uploadBoardToStorage 
 } = require("./shared.js");
 
@@ -80,6 +79,8 @@ const UPDATE_BOARD_VALIDATORS = [
         }
     }
 ]
+
+
 
 module.exports = {
     steps: UPDATE_BOARD_VALIDATORS,

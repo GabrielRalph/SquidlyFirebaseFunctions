@@ -36,9 +36,9 @@ const FORMAT_2_MIMETYPE = {
  * Converts image at url to png base64 encoded string
  * @param {Buffer} dataBuffer
  */
-async function img2png(dataBuffer) {
+async function img2png(dataBuffer, size = EMBEDDING_IMAGE_SIZE) {
     const imgbuff = await sharp(dataBuffer)
-    .resize(EMBEDDING_IMAGE_SIZE)
+    .resize(size)
     .png()
     .toBuffer();
     return imgbuff;
