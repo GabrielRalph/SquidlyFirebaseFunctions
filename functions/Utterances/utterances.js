@@ -36,6 +36,9 @@ const MY_VOICES = {
     amélie: ["fr-FR","fr-FR-Chirp3-HD-Sulafat", "FR"],
     etienne: ["fr-FR","fr-FR-Standard-G", "FR"],
     julia: ["fr-FR","fr-FR-Standard-F", "FR"],
+
+    美咲: ["ja-JP", "ja-JP-Standard-A", "JP"],
+    翔太: ["ja-JP", "ja-JP-Standard-B", "JP"]
 }
 
 setTokenGenerator(async () => (await admin.credential.applicationDefault().getAccessToken()).access_token)
