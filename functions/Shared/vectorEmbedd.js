@@ -23,7 +23,7 @@ async function getEmbedding(data) {
     let vector = null;
     // Get the access token
     try {
-        const accessToken = (await admin.credential.applicationDefault().getAccessToken()).access_token;
+        const accessToken = (await require("firebase-admin/app").applicationDefault().getAccessToken()).access_token;
     
         // Make the POST request
         const response = await axios.post(URL, data, {

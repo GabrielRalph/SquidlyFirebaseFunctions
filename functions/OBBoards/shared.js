@@ -271,6 +271,21 @@ class OBFileMetadata extends DataClass {
  * @param {Object<string, OBBoard>} boards
  */
 async function uploadBoardSetToStorage(metadata, boards) {
+    const boardCol = fstore.collection(BOARD_COLLECTION)
+    const directories = metadata ? Object.entries(metadata).filter(([key, meta]) => meta.isDirectory) : [];
+    await Promise.all(directories.map(async ([key, meta]) => {
+       const dirPath = meta.path;
+       let oldDoc = await boardCol.where("path", "==", dirPath).where("owner", "==", meta.owner).get();
+       if (!oldDoc.empty) {
+           console.log(`Directory already exists in Firestore: ${dirPath}`);
+       } else {
+            console.log(`Creating directory in Firestore: ${dirPath}`);
+            meta = meta.toJSON();
+            meta.updatedAt = FieldValue.serverTimestamp();
+            await boardCol.doc(key).set(meta, {merge: true});
+       }
+    }));
+
     const uploadPromises = Object.entries(metadata).map(async ([boardID, boardMetadata]) => {
         const board = boards[boardID];
         const meta = OBFileMetadata.make(boardMetadata).toJSON();
@@ -282,7 +297,7 @@ async function uploadBoardSetToStorage(metadata, boards) {
                 try {
                     await uploadBoardToStorage(boardID, encoded);
                     try {
-                        await fstore.collection(BOARD_COLLECTION).doc(boardID).set(meta, {merge: true});
+                        await boardCol.doc(boardID).set(meta, {merge: true});
                         console.log(`Successfully uploaded board ${path} to storage and updated metadata.`);
                     } catch (e) {
                         console.error(`Failed to update metadata for board ${path}: ${e.message}`);

@@ -50,17 +50,23 @@ async function updateBoards(user, rootPath, updateMethod) {
 
 
 updateBoards(
-    "b74L3X6ChOPe5lmbGMpg9jVfRrb2", 
-    "Proloquo\\Proloquo CWB", 
+    "squidly", 
+    "CommuniKate\\CommuniKate 20", 
     /** @param {OBBoard} board
      *  @param {OBFileMetadata} meta
      *  @param {string} key
      */
     async (board, meta, key) => {
-        meta.owner = "squidly"
-        let path = meta.path.split("\\");
-        path.slice(1);
-        meta.path = path.join("\\");
+        for (const button of board.buttons) {
+            if (!button.load_board) {
+                button.actions = ["&"]
+            }
+        }
+
+        // meta.owner = "squidly"
+        // let path = meta.path.split("\\");
+        // path.slice(1);
+        // meta.path = path.join("\\");
         return true;
     }
 ).then(() => {

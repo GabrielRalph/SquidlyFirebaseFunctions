@@ -3,9 +3,11 @@ const { getTextEmbedding } = require("../Shared/vectorEmbedd");
 
 const EMB_COLLECTION = fstore.collection("symbol-embeddings");
 const SYM_COLLECTION = fstore.collection("symbols");
+
 const LIMIT_PERCENTAGE = 0.0025
 const LIMIT_MINIMUM = 10
 const LIMIT_MAX = 250
+
 const COUNT_CACHE = {}
 
 
@@ -39,12 +41,13 @@ function getQuery(symbol_set, uid, use_variants = false){
 async function getCount(symbol_set, uid, use_variants = false){
     let cache_key = null;
     let currentHour = Math.floor(Date.now() / 3600000); 
+    let currentSecond = Math.floor(Date.now() / 1000);
     if (symbol_set == "PUBLIC") {
-        cache_key = `PUBLIC_${currentHour}`;
+        cache_key = `PUBLIC_${currentSecond}`;
     } else if (symbol_set == "PRIVATE") {
-        cache_key = `PRIVATE_${uid}_${currentHour}`;
+        cache_key = `PRIVATE_${uid}_${currentSecond}`;
     } else {
-        cache_key = `${symbol_set}_${use_variants? 1 : 0}`;
+        cache_key = `${symbol_set}_${use_variants? 1 : 0}_${currentHour}`;
     }
 
     let count = 0;

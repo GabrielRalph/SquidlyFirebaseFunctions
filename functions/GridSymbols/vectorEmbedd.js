@@ -83,7 +83,7 @@ function startTimer() {
 
 async function getEmbedding(data) {
     // Get the access token
-    const accessToken = (await admin.credential.applicationDefault().getAccessToken()).access_token;
+    const accessToken = (await require("firebase-admin/app").applicationDefault().getAccessToken()).access_token;
 
     // Make the POST request
     const response = await axios.post(URL, data, {

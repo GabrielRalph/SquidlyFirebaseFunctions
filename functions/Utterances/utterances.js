@@ -38,90 +38,91 @@ const MY_VOICES = {
     julia: ["fr-FR","fr-FR-Standard-F", "FR"],
 
     美咲: ["ja-JP", "ja-JP-Standard-A", "JP"],
-    翔太: ["ja-JP", "ja-JP-Standard-B", "JP"]
+    翔太: ["ja-JP", "ja-JP-Standard-B", "JP"],
+
+    litia: ["id-ID", "id-ID-Standard-D", "FJ"],
+    josefa: ["id-ID","id-ID-Standard-C", "FJ"],
+    
+    tala: ["fil-PH", "fil-PH-Standard-A", "FJ"],
+    bayani: ["fil-PH", "fil-PH-Standard-C", "FJ"],
 }
 
-setTokenGenerator(async () => (await admin.credential.applicationDefault().getAccessToken()).access_token)
+setTokenGenerator(async () => (await require("firebase-admin/app").applicationDefault().getAccessToken()).access_token)
 
+
+const CREATE_UTTERANCE_STEPS = [
+    (scope) => {
+        scope.utteranceRef = UtterancesRef.doc();
+        scope.utteranceID = scope.utteranceRef.id;
+        scope.name = scope.voiceName + "-" + scope.phrase;
+        [scope.langauge, scope.voice] = MY_VOICES[scope.voiceName];
+    },
+
+    async (scope) => {
+        try {
+            let audio = (await textToSpeach(
+                scope.phrase, 
+                scope.langauge, 
+                scope.voice)
+            ).audioContent;
+            scope.audio = Buffer.from(audio, 'base64'); // Ta-da
+        } catch (e) {
+            const msg = "Creating Utterance: An error occured calling the text-to-speach API.";
+            debug("UTTERANCES:", msg, e);
+            return msg;
+        }
+    },
+
+    async (scope) => {
+        try {
+            scope.file = sb.file(`utterances/${scope.utteranceID}`);
+            await scope.file.save(scope.audio, {
+                metadata: {
+                    contentType: "audio/mpeg",
+                }
+            });
+            scope.url = await getDownloadURL(scope.file);
+        } catch (e) {
+            const msg = "Creating Utterance: An error occured whist saving the audio data.";
+            debug("UTTERANCES:", msg, e);
+            return msg;
+        }
+    },
+
+    async (scope) => {
+        try {
+            // The doc is only created here (UtterancesRef.doc() doesn't write),
+            // so use set, and include name so getWhere can find it later.
+            await scope.utteranceRef.set({name: scope.name, url: scope.url})
+        } catch (e) {
+            const msg = "Creating Utterance: An error occured whilst saving the utterance document.";
+            debug("UTTERANCES:", msg, e);
+            return msg;
+        }
+    }
+]
 
 /**
  * @param {string} phrase
  * @param {string} voiceName
  * 
- * @return {Promise<{errors: string[], url: ?string, utterenceID: ?null}>}
+ * @return {Promise<{errors: string[], url: ?string, utteranceID: ?string}>}
  */
 async function createUtterance(phrase, voiceName) {
-    let utteranceID = null;
-    let utteranceRef = null;
-    let url = null;
+    let results = {phrase, voiceName};
     let errors = []
-    let success = true;
 
-    let name = voiceName + "-" + phrase
-    let [langauge, voice] = MY_VOICES[voiceName];
+    if (!(await validateData(results, CREATE_UTTERANCE_STEPS, errors))) {
+        //clean up
+        await Promise.all([
+            results.file ? results.file.delete().catch(() => {}) : null,
+            results.utteranceRef ? results.utteranceRef.delete().catch(() => {}) : null
+        ]);
 
-    // Create Firestore Reference
-    try {
-        utteranceRef = await UtterancesRef.add({name});
-        utteranceID = utteranceRef.id;
-    } catch (e) {
-        const msg = "Creating Utterance: An error occured whilst creating firestore reference.";
-        errors.push(msg);
-        debug("UTTERANCES:", msg, e);
-        success = false;
+        results = {errors, url: null, utteranceID: null};
     }
 
-    if (success) {
-        // Get audio data from text-to-speach API
-        let audio = null;
-        try {
-            audio = (await textToSpeach(phrase, langauge, voice)).audioContent;
-            audio = Buffer.from(audio, 'base64'); // Ta-da
-        } catch (e) {
-            const msg = "Creating Utterance: An error occured calling the text-to-speach API.";
-            errors.push(msg);
-            debug("UTTERANCES:", msg, e);
-            success = false;
-        } 
-
-        // If successful save data in firebase storage.
-        if (success) {
-            try {
-                const file = sb.file(`utterances/${utteranceID}`);
-                await file.save(audio, {
-                    metadata: {
-                        contentType: "audio/mpeg",
-                    }
-                });
-                url = await getDownloadURL(file);
-            } catch (e) {
-                const msg = "Creating Utterance: An error occured whist saving the audio data.";
-                errors.push(msg);
-                debug("UTTERANCES:", msg, e);
-                success = false;
-            }
-        }
-    }
-    
-    if (success) {
-        try {
-            await utteranceRef.update({url})
-        } catch (e) {
-            const msg = "Creating Utterance: An error occured whilst updating url.";
-            errors.push(msg);
-            debug("UTTERANCES:",msg, e);
-            success = false;
-        }
-    } else if (utteranceRef != null){
-        try {
-            await utteranceRef.delete();
-        } catch (e) {
-            const msg = "Creating Utterance: An error occured whilst cleaning broken utterance NOT GOOD ERROR.";
-            errors.push(msg);
-            debug("UTTERANCES:",msg, e);
-            success = false;
-        }
-    }
+    const {url, utteranceID} = results;
 
     return {errors, url, utteranceID};
 }
@@ -132,19 +133,22 @@ async function createUtterance(phrase, voiceName) {
  * @type {Array.<({data: ?{text: string}, auth: ?AuthData}) => Promise>}
  */
 const VALIDATORS = [
-    async ({auth}) => {
-        if (!isNonNullObject(auth)) {
-            return "User not authenticated";
-        }
-    },
-    async ({auth}) => {
-        let a = async () => (await getUsersMaxTier(auth.uid) != 0);
-        let b = async () => (await tempUsersRef(auth.uid).get()).exists();
-        let [licence, tempUser] =  await Promise.all([a(), b()])
-        if (!(licence || tempUser)){
-            return "User does not have a licence";
-        }
-    },
+    /*
+    ******* TEMPORARY DISABLED AUTH REQUIREMENTS *******
+    */
+    // async ({auth}) => {
+    //     if (!isNonNullObject(auth)) {
+    //         return "User not authenticated";
+    //     }
+    // },
+    // async ({auth}) => {
+    //     let a = async () => (await getUsersMaxTier(auth.uid) != 0);
+    //     let b = async () => (await tempUsersRef(auth.uid).get()).exists;
+    //     let [licence, tempUser] =  await Promise.all([a(), b()])
+    //     if (!(licence || tempUser)){
+    //         return "User does not have a licence";
+    //     }
+    // },
     async ({data}) => {
         if (!isNonNullObject(data)) {
             return "No search data provided.";
@@ -215,6 +219,9 @@ async function getUtterances(data, auth) {
        try {
            // Get all utterances allready contained in the database.
            let all = await getWhere(allNames, UtterancesRef);
+
+           // Remove any utterances that do not have a valid URL
+           all = all.filter(([name, url]) => !!url); 
     
            // Get name of each fetched utterance and store url 
            // in utterances result object.
@@ -252,7 +259,9 @@ async function getUtterances(data, auth) {
 
 module.exports = {
     get: onCall({
-        region: "australia-southeast1"
+        region: "australia-southeast1",
+        // extend memory limit if needed
+        memory: "512MiB",
     },async ({auth, data}) => {
         return await getUtterances(data, auth);
     }),

@@ -42,7 +42,7 @@ const UPLOAD_VALIDATORS = [
         data.symbolSetSourceID = null;
         data.commercial = true;
         data.uid = uid;
-        // data.isTest = false;
+        data.isTest = false;
 
         const upid = data.uploadID;
         data.uploadID = typeof upid === "string" && upid.length > 0 ? upid : null;

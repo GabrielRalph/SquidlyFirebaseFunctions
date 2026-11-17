@@ -80,7 +80,7 @@ class DataClass {
                         instance[key] = argsObject[key];
                     }
                 } else if (instance[key] === undefined) {
-                    throw new Error(`${this.constructor.name}: Missing required property: ${key}`);
+                    throw new Error(`${this.constructor.name}: Missing required property: ${key}\n\tClass: ${this.name}\n\tProvided object: ${JSON.stringify(argsObject, null, 2).replace(/\n/g, "\n\t\t")}`);
                 }
             }
         }
@@ -159,7 +159,12 @@ class OpenBoardObject extends DataClass {
  * which is used as part of the "load_board" 
  * property on the OB button object.
  */
-class OBLoadBoard extends OpenBoardObject {
+class OBLoadBoard extends DataClass {
+    /**
+     * The unique identifier for the board.
+     * @type {string}
+     */
+    id = null;
 
     /** @type {?string} */
     name = null;        

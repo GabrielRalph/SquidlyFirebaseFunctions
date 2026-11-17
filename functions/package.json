@@ -9,7 +9,7 @@
     "logs": "firebase functions:log"
   },
   "engines": {
-    "node": "20"
+    "node": "24"
   },
   "main": "index.js",
   "dependencies": {
@@ -17,8 +17,8 @@
     "@google-cloud/secret-manager": "^6.1.0",
     "axios": "^1.7.9",
     "fflate": "^0.8.3",
-    "firebase-admin": "^13.0.2",
-    "firebase-functions": "^6.2.0",
+    "firebase-admin": "^14.5.1",
+    "firebase-functions": "^7.4.0",
     "googleapis": "^144.0.0",
     "handlebars": "^4.7.8",
     "heic-convert": "^2.1.0",

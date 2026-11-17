@@ -4,8 +4,27 @@ const { createProxyLinkForProfile, proxyRef } = require("../functions/Sessions/s
 
 async function createProxyLinksForUser(uid, user = null) {
     user = user || (await db.ref(`users/${uid}`).get()).val();
-    const profiles = Object.keys(user?.settings?.profiles || {}).filter(profileID => profileID !== "default");
-    await Promise.all(profiles.map(profileID => createProxyLinkForProfile(uid, profileID)));
+    const proids = Object.keys(user?.settings?.profiles || {});
+    const proxids = proids.map(profileID => user?.settings?.profiles?.[profileID]?.proxyID);
+    if (proxids.length > 0) {
+        // console.log(uid,proids,proxids);
+        for (let i = 0; i < proxids.length; i++) {
+            const proxyID = proxids[i];
+            const profileID = proids[i];
+            if (proxyID && profileID) {
+                console.log(`UID: ${uid}, ProfileID: ${profileID}, ProxyID: ${proxyID}`);
+                await proxyRef(proxyID).set({ hostUID: uid, info: {profileID} });
+            } else if (!proxyID && profileID) {
+                await createProxyLinkForProfile(uid, profileID);
+            }
+            // await proxyRef(proxyID);
+        }
+        // await Promise.all(proxids.map(proxyID => proxyRef(proxyID)));
+    }
+    // await Promise.all(pids.map(profileID => proxyRef(pids, )));
+    // const profiles = Object.entries(user?.settings?.profiles || {}).filter(profileID => profileID === "default");
+    // await Promise.all(profiles.map(profileID => createProxyLinkForProfile(uid, profileID)));
+    // await createProxyLinkForProfile(uid, "default");
 }
 
 
@@ -16,7 +35,6 @@ async function createProxyLinks() {
 
 
 async function test() {
-    proxyRef().set(null)
     await createProxyLinks();
 }
 

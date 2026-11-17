@@ -121,6 +121,11 @@ function loadOBZ(dataBuffer) {
 }
 
 
+function getNewBoardID() {
+    const boardsRef = fstore.collection(BOARD_COLLECTION);
+    return boardsRef.doc().id;
+}
+
 
 /**
  * @param {Object<string, OBBoard>} oldBoards - The mapping of old board IDs to their corresponding OBBoard objects.
@@ -173,6 +178,7 @@ function assignNewIDs(oldBoards) {
 }
 
 
+
 /**
  * @param {Object<string, OBBoard>} boards
  * @returns {[Object<string, string[]>, Set<string>]}
@@ -208,8 +214,8 @@ function getPaths(boards, specifiedRootBoards = []) {
 
     // Identify root topics (topics that are not led to by any other topic)
     let rootBoards = [...new Set([
-        ...allBoardIDs.filter(id => !boardsThatLeadTo[id]),  // Root by lack of incoming links
-        ...specifiedRootBoards // Root by explicit specification
+        ...specifiedRootBoards, // Root by explicit specification
+        ...allBoardIDs.filter(id => !boardsThatLeadTo[id])  // Root by lack of incoming links
     ])];
     console.log("Identified", rootBoards.length, "root boards out of", nB, "total boards.");
 
@@ -245,6 +251,7 @@ function getPaths(boards, specifiedRootBoards = []) {
 
         return pathGroup
     });
+    
 
     const finalTopicPaths = {}
     for (const boardID in boards) {
@@ -252,12 +259,12 @@ function getPaths(boards, specifiedRootBoards = []) {
         // If there are multiple paths to the same topic, 
         // we need to decide which one to keep as the final path.
         if (pGroups.length > 1) {
-            console.log("Multiple path groups found for boardID:", boardID);
+            // console.log("Multiple path groups found for boardID:", boardID);
             let sizes = pGroups.map(pGroup => Object.keys(pGroup).length);
             let biggestGroup = pGroups[sizes.indexOf(Math.max(...sizes))];
-            for (const pGroup of pGroups) {
-                console.log("\t", pGroup === biggestGroup ? "+" : "-", pGroup[boardID]);
-            }
+            // for (const pGroup of pGroups) {
+            //     // console.log("\t", pGroup === biggestGroup ? "+" : "-", pGroup[boardID]);
+            // }
             finalTopicPaths[boardID] = biggestGroup[boardID];
         } else if (pGroups.length === 1) {
             finalTopicPaths[boardID] = pGroups[0][boardID];
@@ -287,12 +294,18 @@ function boardPathToButtonPath(path, boards) {
     return new Path(newPath);
 }
 
-
+async function getDocByPath(path, owner) {
+    const boardCol = fstore.collection(BOARD_COLLECTION)
+    const results = await boardCol.where("path", "==", path).where("owner", "==", owner).get();
+    return results;
+}
 
 module.exports = {
     loadOBZ,
     getPaths,
     assignNewIDs,
     GraphGeneric,
-    boardPathToButtonPath
+    boardPathToButtonPath,
+    getNewBoardID,
+    getDocByPath,
 }

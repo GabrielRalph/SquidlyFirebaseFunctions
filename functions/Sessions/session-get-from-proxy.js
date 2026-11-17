@@ -130,7 +130,7 @@ module.exports = {
         instance: "eyesee-d0a42-default-rtdb",
         region: "asia-southeast1"
     }, async ({params: {uid, profileID}, data}) => {
-        if (data.exists() && profileID !== "default") {
+        if (data.exists()) {
             await createProxyLinkForProfile(uid, profileID);
         }
     }),
@@ -140,7 +140,7 @@ module.exports = {
         instance: "eyesee-d0a42-default-rtdb",
         region: "asia-southeast1"
     }, async ({data, params: {uid, profileID}}) => {
-        if (data.exists() && profileID !== "default") {
+        if (data.exists()) {
             const proxyID = data.val().proxyID;
             if (proxyID) {
                 await proxyRef(proxyID).set(null);
